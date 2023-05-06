@@ -200,3 +200,17 @@ void mml::xml_writer::do_if_else_node(mml::if_else_node * const node, int lvl) {
   closeTag("else", lvl + 2);
   closeTag(node, lvl);
 }
+
+//---------------------------------------------------------------------------
+
+void mml::xml_writer::do_declaration_node(mml::declaration_node * const node, int lvl) {
+}
+
+void mml::xml_writer::do_block_node(mml::block_node * const node, int lvl) {
+}
+
+void mml::xml_writer::do_function_def_node(mml::function_def_node *const node, int lvl) {
+}
+
+void mml::xml_writer::do_function_call_node(mml::function_call_node *const node, int lvl) {
+}

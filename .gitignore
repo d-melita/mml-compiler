@@ -31,3 +31,8 @@
 *.tab.c
 *.tab.h
 
+.idea/
+*.asm
+*.mml
+mml
+ex

@@ -190,3 +190,17 @@ void mml::type_checker::do_if_node(mml::if_node *const node, int lvl) {
 void mml::type_checker::do_if_else_node(mml::if_else_node *const node, int lvl) {
   node->condition()->accept(this, lvl + 4);
 }
+
+//---------------------------------------------------------------------------
+
+void mml::type_checker::do_declaration_node(mml::declaration_node *const node, int lvl) {
+}
+
+void mml::type_checker::do_block_node(mml::block_node *const node, int lvl) {
+}
+
+void mml::type_checker::do_function_def_node(mml::function_def_node *const node, int lvl) {
+}
+
+void mml::type_checker::do_function_call_node(mml::function_call_node *const node, int lvl) {
+}
