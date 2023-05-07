@@ -36,3 +36,5 @@
 *.mml
 mml
 ex
+
+.vscode/

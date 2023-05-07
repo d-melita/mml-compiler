@@ -284,3 +284,24 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
 
 void mml::postfix_writer::do_function_call_node(mml::function_call_node *const node, int lvl) {
 }
+
+void mml::postfix_writer::do_stop_node(mml::stop_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_next_node(mml::next_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_return_node(mml::return_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_input_node(mml::input_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_sizeof_node(mml::sizeof_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_address_of_node(mml::address_of_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_stack_alloc_node(mml::stack_alloc_node *const node, int lvl) {
+}

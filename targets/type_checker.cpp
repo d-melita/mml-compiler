@@ -204,3 +204,24 @@ void mml::type_checker::do_function_def_node(mml::function_def_node *const node,
 
 void mml::type_checker::do_function_call_node(mml::function_call_node *const node, int lvl) {
 }
+
+void mml::type_checker::do_stop_node(mml::stop_node *const node, int lvl) {
+}
+
+void mml::type_checker::do_next_node(mml::next_node *const node, int lvl) {
+}
+
+void mml::type_checker::do_return_node(mml::return_node *const node, int lvl) {
+}
+
+void mml::type_checker::do_input_node(mml::input_node *const node, int lvl) {
+}
+
+void mml::type_checker::do_sizeof_node(mml::sizeof_node *const node, int lvl) {
+}
+
+void mml::type_checker::do_address_of_node(mml::address_of_node *const node, int lvl) {
+}
+
+void mml::type_checker::do_stack_alloc_node(mml::stack_alloc_node *const node, int lvl) {
+}
