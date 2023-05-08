@@ -225,3 +225,9 @@ void mml::type_checker::do_address_of_node(mml::address_of_node *const node, int
 
 void mml::type_checker::do_stack_alloc_node(mml::stack_alloc_node *const node, int lvl) {
 }
+
+void mml::type_checker::do_index_node(mml::index_node *const node, int lvl) {
+}
+
+void mml::type_checker::do_write_node(mml::write_node *const node, int lvl) {
+}

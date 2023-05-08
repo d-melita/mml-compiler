@@ -305,3 +305,9 @@ void mml::postfix_writer::do_address_of_node(mml::address_of_node *const node, i
 
 void mml::postfix_writer::do_stack_alloc_node(mml::stack_alloc_node *const node, int lvl) {
 }
+
+void mml::postfix_writer::do_index_node(mml::index_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_write_node(mml::write_node *const node, int lvl) {
+}
