@@ -270,3 +270,44 @@ void mml::postfix_writer::do_if_else_node(mml::if_else_node * const node, int lv
   node->elseblock()->accept(this, lvl + 2);
   _pf.LABEL(mklbl(lbl1 = lbl2));
 }
+
+//---------------------------------------------------------------------------
+
+void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node, int lvl) {
+}
+
+void mml::postfix_writer::do_block_node(mml::block_node * const node, int lvl) {
+}
+
+void mml::postfix_writer::do_function_def_node(mml::function_def_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_function_call_node(mml::function_call_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_stop_node(mml::stop_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_next_node(mml::next_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_return_node(mml::return_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_input_node(mml::input_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_sizeof_node(mml::sizeof_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_address_of_node(mml::address_of_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_stack_alloc_node(mml::stack_alloc_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_index_node(mml::index_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_write_node(mml::write_node *const node, int lvl) {
+}
