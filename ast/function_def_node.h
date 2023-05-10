@@ -12,11 +12,12 @@ namespace mml {
     cdk::sequence_node* _arguments;
     std::shared_ptr<cdk::basic_type>* _returnType;
     mml::block_node* _block;
+    bool _is_main;
 
   public:
     /* Function with arguments */
-    inline function_def_node(int lineno, cdk::sequence_node* arguments, std::shared_ptr<cdk::basic_type>* returnType, mml::block_node* block) :
-        cdk::expression_node(lineno), _arguments(arguments), _returnType(returnType), _block(block) {
+    inline function_def_node(int lineno, cdk::sequence_node* arguments, std::shared_ptr<cdk::basic_type>* returnType, mml::block_node* block, bool is_main = false) :
+        cdk::expression_node(lineno), _arguments(arguments), _returnType(returnType), _block(block), _is_main(is_main) {
     }
 
     inline cdk::sequence_node* arguments() {
@@ -29,6 +30,10 @@ namespace mml {
 
     inline mml::block_node* block() {
         return _block;
+    }
+
+    inline bool is_main() {
+        return _is_main;
     }
 
     void accept(basic_ast_visitor *sp, int level) {

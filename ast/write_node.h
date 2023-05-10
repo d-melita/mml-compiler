@@ -10,20 +10,20 @@ namespace mml {
    */
   class write_node: public cdk::basic_node {
     cdk::sequence_node* _expressions;
-    bool _hasNewline;
+    bool _has_newline;
 
   public:
 
-    inline write_node(int lineno, cdk::sequence_node* expressions, bool hasNewline = false) :
-        cdk::basic_node(lineno), _expressions(expressions), _hasNewline(hasNewline) {
+    inline write_node(int lineno, cdk::sequence_node* expressions, bool has_newline = false) :
+        cdk::basic_node(lineno), _expressions(expressions), _has_newline(has_newline) {
     }
 
     inline cdk::sequence_node* expressions() {
       return _expressions;
     }
 
-    inline bool hasNewline() {
-      return _hasNewline;
+    inline bool has_newline() {
+      return _has_newline;
     }
 
     void accept(basic_ast_visitor *sp, int level) {
