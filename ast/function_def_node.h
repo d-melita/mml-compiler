@@ -10,14 +10,14 @@ namespace mml {
    */
   class function_def_node: public cdk::expression_node {
     cdk::sequence_node* _arguments;
-    std::shared_ptr<cdk::basic_type>* _returnType;
+    std::shared_ptr<cdk::basic_type>* _return_type;
     mml::block_node* _block;
     bool _is_main;
 
   public:
     /* Function with arguments */
-    inline function_def_node(int lineno, cdk::sequence_node* arguments, std::shared_ptr<cdk::basic_type>* returnType, mml::block_node* block, bool is_main = false) :
-        cdk::expression_node(lineno), _arguments(arguments), _returnType(returnType), _block(block), _is_main(is_main) {
+    inline function_def_node(int lineno, cdk::sequence_node* arguments, std::shared_ptr<cdk::basic_type>* return_type, mml::block_node* block, bool is_main = false) :
+            cdk::expression_node(lineno), _arguments(arguments), _return_type(return_type), _block(block), _is_main(is_main) {
     }
 
     inline cdk::sequence_node* arguments() {
@@ -25,7 +25,7 @@ namespace mml {
     }
 
     inline std::shared_ptr<cdk::basic_type>* returnType() {
-        return _returnType;
+        return _return_type;
     }
 
     inline mml::block_node* block() {
