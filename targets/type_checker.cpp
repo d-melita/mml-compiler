@@ -216,3 +216,6 @@ void mml::type_checker::do_write_node(mml::write_node *const node, int lvl) {
 
 void mml::type_checker::do_nullptr_node(mml::nullptr_node *const node, int lvl) {
 }
+
+void mml::type_checker::do_identity_node(mml::identity_node *const node, int lvl) {
+}

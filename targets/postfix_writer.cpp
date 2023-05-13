@@ -258,3 +258,6 @@ void mml::postfix_writer::do_write_node(mml::write_node *const node, int lvl) {
 
 void mml::postfix_writer::do_nullptr_node(mml::nullptr_node *const node, int lvl) {
 }
+
+void mml::postfix_writer::do_identity_node(mml::identity_node *const node, int lvl) {
+}
