@@ -177,32 +177,6 @@ void mml::postfix_writer::do_evaluation_node(mml::evaluation_node * const node, 
   }
 }
 
-void mml::postfix_writer::do_print_node(mml::print_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
-  node->argument()->accept(this, lvl); // determine the value to print
-  if (node->argument()->is_typed(cdk::TYPE_INT)) {
-    _pf.CALL("printi");
-    _pf.TRASH(4); // delete the printed value
-  } else if (node->argument()->is_typed(cdk::TYPE_STRING)) {
-    _pf.CALL("prints");
-    _pf.TRASH(4); // delete the printed value's address
-  } else {
-    std::cerr << "ERROR: CANNOT HAPPEN!" << std::endl;
-    exit(1);
-  }
-  _pf.CALL("println"); // print a newline
-}
-
-//---------------------------------------------------------------------------
-
-void mml::postfix_writer::do_read_node(mml::read_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
-  _pf.CALL("readi");
-  _pf.LDFVAL32();
-  node->argument()->accept(this, lvl);
-  _pf.STINT();
-}
-
 //---------------------------------------------------------------------------
 
 void mml::postfix_writer::do_while_node(mml::while_node * const node, int lvl) {
@@ -280,4 +254,7 @@ void mml::postfix_writer::do_index_node(mml::index_node *const node, int lvl) {
 }
 
 void mml::postfix_writer::do_write_node(mml::write_node *const node, int lvl) {
+}
+
+void mml::postfix_writer::do_nullptr_node(mml::nullptr_node *const node, int lvl) {
 }

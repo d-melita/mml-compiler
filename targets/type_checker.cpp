@@ -157,20 +157,6 @@ void mml::type_checker::do_evaluation_node(mml::evaluation_node *const node, int
   node->argument()->accept(this, lvl + 2);
 }
 
-void mml::type_checker::do_print_node(mml::print_node *const node, int lvl) {
-  node->argument()->accept(this, lvl + 2);
-}
-
-//---------------------------------------------------------------------------
-
-void mml::type_checker::do_read_node(mml::read_node *const node, int lvl) {
-  try {
-    node->argument()->accept(this, lvl);
-  } catch (const std::string &id) {
-    throw "undeclared variable '" + id + "'";
-  }
-}
-
 //---------------------------------------------------------------------------
 
 void mml::type_checker::do_while_node(mml::while_node *const node, int lvl) {
@@ -226,4 +212,7 @@ void mml::type_checker::do_index_node(mml::index_node *const node, int lvl) {
 }
 
 void mml::type_checker::do_write_node(mml::write_node *const node, int lvl) {
+}
+
+void mml::type_checker::do_nullptr_node(mml::nullptr_node *const node, int lvl) {
 }
