@@ -11,7 +11,7 @@ namespace mml {
   class nullptr_node: public cdk::expression_node {
 
   public:
-    nullptr_node(int lineno) :
+    inline nullptr_node(int lineno) :
         cdk::expression_node(lineno) {
     }
 

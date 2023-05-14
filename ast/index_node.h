@@ -20,11 +20,11 @@ namespace mml {
     cdk::lvalue_node(lineno), _ptr(ptr), _idx(idx) {
     }
 
-    cdk::expression_node* ptr() {
+    inline cdk::expression_node* ptr() {
       return _ptr;
     }
 
-    cdk::expression_node* idx() {
+    inline cdk::expression_node* idx() {
       return _idx;
     }
 
