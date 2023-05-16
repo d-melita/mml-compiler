@@ -9,16 +9,16 @@ namespace mml {
   /**
    * Class for describing function definition nodes.
    */
-  class function_def_node: public cdk::typed_node {
+  class function_def_node: public cdk::expression_node {
     cdk::sequence_node* _arguments;
-    std::shared_ptr<cdk::basic_type>* _return_type;
     mml::block_node* _block;
     bool _is_main;
 
   public:
-    /* Function with arguments */
-    inline function_def_node(int lineno, cdk::sequence_node* arguments, std::shared_ptr<cdk::basic_type>* return_type, mml::block_node* block, bool is_main = false) :
-            cdk::typed_node(lineno), _arguments(arguments), _return_type(return_type), _block(block), _is_main(is_main) {
+
+    /* non-main function definition */
+    inline function_def_node(int lineno, cdk::sequence_node* arguments, std::shared_ptr<cdk::basic_type> return_type, mml::block_node* block) :
+            cdk::expression_node(lineno), _arguments(arguments), _block(block), _is_main(false) {
 
       // Create a functional type
       std::vector<std::shared_ptr<cdk::basic_type>> input_types;
@@ -27,15 +27,20 @@ namespace mml {
         input_types.push_back(typed_node->type());
       }
 
-      type(cdk::functional_type::create(input_types, *_return_type));
+      type(cdk::functional_type::create(input_types, return_type));
+    }
+
+    /* Main function definition */
+    inline function_def_node(int lineno, mml::block_node* block) :
+            cdk::expression_node(lineno), _arguments(nullptr), _block(block), _is_main(true) {
+
+      type(cdk::functional_type::create(
+              cdk::primitive_type::create(4, cdk::TYPE_INT) // Main function is of type int
+      ));
     }
 
     inline cdk::sequence_node* arguments() {
         return _arguments;
-    }
-
-    inline std::shared_ptr<cdk::basic_type>* returnType() {
-        return _return_type;
     }
 
     inline mml::block_node* block() {
