@@ -25,8 +25,9 @@
 "while"                return tWHILE; 
 "if"                   return tIF; 
 "else"                 return tELSE; 
-"print"                return tPRINT; 
-"read"                 return tREAD; 
+"!"                    return tPRINT;
+"!!"                   return tPRINTLN;
+"read"                 return tREAD;
 "begin"                return tBEGIN; 
 "end"                  return tEND; 
 

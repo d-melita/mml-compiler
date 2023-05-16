@@ -222,4 +222,18 @@ void mml::xml_writer::do_stop_node(mml::stop_node *const node, int lvl) {
 }
 
 void mml::xml_writer::do_write_node(mml::write_node *const node, int lvl) {
+
+  // TODO: Uncomment in e3
+  // ASSERT_SAFE_EXPRESSIONS;
+
+  openTag(node, lvl);
+
+  os() << std::string(lvl, ' ')
+       << "<"
+       << node->label()
+       << " has_newline='" << node->has_newline()
+       << "'>"
+       << std::endl;
+
+  closeTag(node, lvl);
 }

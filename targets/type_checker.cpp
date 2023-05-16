@@ -218,4 +218,5 @@ void mml::type_checker::do_stop_node(mml::stop_node *const node, int lvl) {
 }
 
 void mml::type_checker::do_write_node(mml::write_node *const node, int lvl) {
+  node->expressions()->accept(this, lvl + 2);
 }
