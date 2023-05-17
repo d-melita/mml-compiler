@@ -180,34 +180,110 @@ void mml::xml_writer::do_if_else_node(mml::if_else_node * const node, int lvl) {
 //---------------------------------------------------------------------------
 
 void mml::xml_writer::do_address_of_node(mml::address_of_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  openTag(node, lvl);
+  node->lvalue()->accept(this, lvl + 2);
+  closeTag(node, lvl);
 }
 
 void mml::xml_writer::do_block_node(mml::block_node * const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  openTag(node, lvl);
+  openTag("declarations", lvl + 2);
+  node->declarations()->accept(this, lvl + 2*2);
+  closeTag("declarations", lvl + 2);
+  openTag("instructions", lvl + 2);
+  node->instructions()->accept(this, lvl + 2*2);
+  closeTag("instructions", lvl + 2);
+  closeTag(node, lvl);
 }
 
 void mml::xml_writer::do_declaration_node(mml::declaration_node * const node, int lvl) {
+  // ASSERT_SAFE_EXPRESSIONS;
+  openTag(node, lvl);
+  os() << std::string(lvl, ' ')
+       << "<" 
+       << node->label()
+       << " qualifier='"
+       << node->qualifier() << "'>"
+       << std::endl;
+  os() << std::string(lvl + 2, ' ')
+       << "<" 
+       << node->label()
+       << " qualifier='"
+       << node->qualifier() << "'>"
+       << std::endl;
+  openTag("rvalue", lvl + 2);
+  node->rvalue()->accept(this, lvl + 2*2);
+  closeTag("rvalue", lvl + 2);
+  closeTag(node, lvl);
 }
 
 void mml::xml_writer::do_function_call_node(mml::function_call_node *const node, int lvl) {
+  // ASSERT_SAFE_EXPRESSIONS;
+  openTag(node, lvl);
+  openTag("identifier", lvl + 2);
+  node->identifier()->accept(this, lvl + 2*2);
+  closeTag("identifier", lvl + 2);
+  openTag("arguments", lvl + 2);
+  node->arguments()->accept(this, lvl + 2*2);
+  closeTag("arguments", lvl + 2);
+  closeTag(node, lvl);
 }
 
 void mml::xml_writer::do_function_def_node(mml::function_def_node *const node, int lvl) {
+  // ASSERT_SAFE_EXPRESSIONS;
+  openTag(node, lvl);
+  openTag("arguments", lvl + 2);
+  node->arguments()->accept(this, lvl + 2*2);
+  closeTag("arguments", lvl + 2);
+  openTag("block", lvl + 2);
+  node->block()->accept(this, lvl + 2*2);
+  closeTag("block", lvl + 2);
+  os() << std::string(lvl, ' ')
+       << "<"
+       << node->label()
+       << " is_main='"
+       << node->is_main()
+       << "'>"
+       << std::endl;
+  closeTag(node, lvl);
 }
 
 void mml::xml_writer::do_identity_node(mml::identity_node *const node, int lvl) {
+  // ASSERT_SAFE_EXPRESSIONS;
+  openTag(node, lvl);
+  closeTag(node, lvl);
 }
 
 void mml::xml_writer::do_index_node(mml::index_node *const node, int lvl) {
+  // ASSERT_SAFE_EXPRESSIONS;
+  openTag(node, lvl);
+  openTag("ptr", lvl + 2);
+  node->ptr()->accept(this, lvl + 2*2);
+  closeTag("ptr", lvl + 2);
+  openTag("idx", lvl + 2);
+  node->idx()->accept(this, lvl + 2*2);
+  closeTag("idx", lvl + 2);
+  closeTag(node, lvl);
 }
 
 void mml::xml_writer::do_input_node(mml::input_node *const node, int lvl) {
   // ASSERT_SAFE_EXPRESSIONS;
-
   openTag(node, lvl);
   closeTag(node, lvl);
 }
 
 void mml::xml_writer::do_next_node(mml::next_node *const node, int lvl) {
+  // ASSERT_SAFE_EXPRESSIONS;
+  openTag(node, lvl);
+  os () << std::string(lvl, ' ') 
+        << "<" 
+        << node->label() 
+        << " argument='" 
+        << node->argument() << "'/>" 
+        << std::endl;
+  closeTag(node, lvl);
 }
 
 void mml::xml_writer::do_nullptr_node(mml::nullptr_node *const node, int lvl) {
@@ -217,24 +293,43 @@ void mml::xml_writer::do_nullptr_node(mml::nullptr_node *const node, int lvl) {
 }
 
 void mml::xml_writer::do_return_node(mml::return_node *const node, int lvl) {
+  // ASSERT_SAFE_EXPRESSIONS;
+  openTag(node, lvl);
+  openTag("retval", lvl + 2);
+  node->retval()->accept(this, lvl + 2*2);
+  closeTag("retval", lvl + 2);
+  closeTag(node, lvl);
 }
 
 void mml::xml_writer::do_sizeof_node(mml::sizeof_node *const node, int lvl) {
   // ASSERT_SAFE_EXPRESSIONS;
   openTag(node, lvl);
-  node->argument()->accept(this, lvl + 2);
+  openTag("argument", lvl + 2);
+  node->argument()->accept(this, lvl + 2*2);
+  closeTag("argument", lvl + 2);
   closeTag(node, lvl);
 }
 
 void mml::xml_writer::do_stack_alloc_node(mml::stack_alloc_node *const node, int lvl) {
+  // ASSERT_SAFE_EXPRESSIONS;
+  openTag(node, lvl);
+  closeTag(node, lvl);
 }
 
 void mml::xml_writer::do_stop_node(mml::stop_node *const node, int lvl) {
+  // ASSERT_SAFE_EXPRESSIONS;
+  openTag(node, lvl);
+  os () << std::string(lvl, ' ') 
+        << "<" 
+        << node->label() 
+        << " argument='" 
+        << node->argument() << "'/>" 
+        << std::endl;
+  closeTag(node, lvl);
 }
 
 void mml::xml_writer::do_write_node(mml::write_node *const node, int lvl) {
 
-  // TODO: Uncomment in e3
   // ASSERT_SAFE_EXPRESSIONS;
 
   openTag(node, lvl);
