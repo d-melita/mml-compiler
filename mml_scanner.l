@@ -27,10 +27,11 @@
 "else"                 return tELSE; 
 "!"                    return tPRINT;
 "!!"                   return tPRINTLN;
-"read"                 return tREAD;
+"input"                return tINPUT;
 "begin"                return tBEGIN; 
 "end"                  return tEND; 
-
+"sizeof"               return tSIZEOF; 
+"null"                 return tNULLPTR; 
 [A-Za-z][A-Za-z0-9_]*  yylval.s = new std::string(yytext); return tIDENTIFIER;
 
 \'                     yy_push_state(X_STRING); yylval.s = new std::string("");
