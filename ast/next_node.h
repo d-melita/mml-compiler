@@ -9,15 +9,15 @@ namespace mml {
    * Class for describing next nodes.
    */
   class next_node: public cdk::basic_node {
-    int _argument;
+    int _level;
 
   public:
-    inline next_node(int lineno, int argument) :
-        cdk::basic_node(lineno), _argument(argument) {
+    inline next_node(int lineno, int level) :
+        cdk::basic_node(lineno), _level(level) {
     }
 
-    inline int argument() {
-      return _argument;
+    inline int level() {
+      return _level;
     }
 
     void accept(basic_ast_visitor *sp, int level) {
