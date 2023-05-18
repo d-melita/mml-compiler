@@ -35,7 +35,11 @@
 %token <i> tINTEGER
 %token <s> tIDENTIFIER tSTRING
 %token tWHILE tIF tPRINT tPRINTLN tINPUT tBEGIN tEND tSIZEOF
+%token tPUBLIC tFORWARD tFOREIGN tPRIVATE /* qualifier tokens */
 %token tNULLPTR
+%token tAUTO_TYPE tINT_TYPE tSTR_TYPE tVOID_TYPE /* type tokens */
+%token tIF tTHEN tELIF tELSE
+%token tSTOP tNEXT tRETURN
 
 %nonassoc tIFX
 %nonassoc tELSE
@@ -58,15 +62,15 @@
 %%
 
 program	: tBEGIN list tEND { }
-	      ;
+	     ;
 
 list : stmt	     { $$ = new cdk::sequence_node(LINE, $1); }
-	   | list stmt { $$ = new cdk::sequence_node(LINE, $2, $1); }
-	   ;
+	| list stmt { $$ = new cdk::sequence_node(LINE, $2, $1); }
+	;
 
 stmt : expr ';'                          { $$ = new mml::evaluation_node(LINE, $1); }
- 	 | exprs tPRINT                      { $$ = new mml::write_node(LINE, $1, false); }
- 	 | exprs tPRINTLN                    { $$ = new mml::write_node(LINE, $1, true); }
+ 	| exprs tPRINT                      { $$ = new mml::write_node(LINE, $1, false); }
+ 	| exprs tPRINTLN                    { $$ = new mml::write_node(LINE, $1, true); }
      | tINPUT                            { $$ = new mml::input_node(LINE); }
      | tWHILE '(' expr ')' stmt          { $$ = new mml::while_node(LINE, $3, $5); }
      | tIF '(' expr ')' stmt %prec tIFX  { $$ = new mml::if_node(LINE, $3, $5); }
@@ -99,19 +103,60 @@ expr : tINTEGER                { $$ = new cdk::integer_node(LINE, $1); }
      | tNULLPTR                { $$ = new mml::nullptr_node(LINE); }
      ;
 
-expr_assig // TODO
+expr_assig : '=' expr { $$ = $2; }
+           ;
 
-opt_expr_assig // TODO
+opt_expr_assig : /* empty */  { $$ = nullptr; }
+               | expr_assig  { $$ = $1; }
+               ;
 
-opt_auto // TODO
 
-opt_qualifier // TODO
+type  : tINT_TYPE          { $$ = cdk::primitive_type::create(4, cdk::TYPE_INT); }
+      | tREAL_TYPE         { $$ = cdk::primitive_type::create(8, cdk::TYPE_DOUBLE); }
+      | tSTR_TYPE          { $$ = cdk::primitive_type::create(4, cdk::TYPE_STRING); }
+      | '[' tVOID_TYPE ']' { $$ = cdk::pointer_type::create(4, cdk::primitive_type::create(4, cdk::TYPE_VOID)); }
+      | '[' type ']'  
+      /* Checks for nested void pointers and ignores them (eg. `[[[void]]]` == `[void]`) */
+      { 
+          /* Case where `type` == `[...[[void]]...]`. Follows the previous rule (i.e. creates a `[void]` pointer). */
+          if ($2->name() == cdk::TYPE_POINTER && cdk::reference_type::cast($2)->referenced()->name() == cdk::TYPE_VOID) {
+               $$ = cdk::pointer_type::create(4, cdk::primitive_type::create(4, cdk::TYPE_VOID));
+          }
+          /* Case where `type` == `[...[[any_type]]...]` */
+          else {
+               $$ = cdk::reference_type::create(4, $2);
+          }
+      } 
+      | func_type      { $$ = $1; }
+      ;
+      
+      
+types : type           { $$ = new std::vector<std::shared_ptr<cdk::basic_type>>(); $$->push_back(*$1); delete $1; }
+      | types ',' type { $$ = $1; $$->push_back(*$3); delete $3; }
+      ;
 
-type   // TODO
 
-instruction // TODO
+func_type : type '<' '>'              { $$ = cdk::functional_type::create($1); }
+          | type '<' types '>'        { $$ = cdk::functional_type::create($3, $1); }
+          | tVOID_TYPE '<' '>'        { $$ = cdk::functional_type::create(cdk::primitive_type::create(4, cdk::TYPE_VOID)); }
+          | tVOID_TYPE '<' types '>'  { $$ = cdk::functional_type::create($3, cdk::primitive_type::create(4, cdk::TYPE_VOID)); }
+          ;
 
-tIDENTIFIER // TODO
+
+instruction : expression ';'              { $$ = new mml::evaluation_node(LINE, $1); }
+            | expressions tPRINT      { $$ = new mml::write_node(LINE, $1); }   
+            | expressions tPRINTLN      { $$ = new mml::write_node(LINE, $1, true); }   
+            | tSTOP tINTEGER ';'          { $$ = new mml::stop_node(LINE, $2); }
+            | tNEXT tINTEGER ';'          { $$ = new mml::next_node(LINE, $2); }
+            | tRETURN expr ';'                                                 { $$ = new mml::return_node(LINE, $2); }
+            | tIF '(' expr ')' instruction elif_instruction                    { $$ = new mml::if_node(LINE, $3, $5); }
+            | tIF '(' expr ')' instruction elif_instruction tELSE instruction  { $$ = new mml::if_else_node(LINE, $3, $5, $8); }
+            | block { $$ = $1; }  
+
+
+elif_instruction : /* empty */ { $$ = nullptr; }
+                 | tELIF '(' expr ')' instruction elif_instruction { $$ = new mml::if_node(LINE, $3, $5); }
+                 ;
 
 
 instructions : instruction               { $$ = new cdk::sequence_node(LINE, $1); }
@@ -122,12 +167,23 @@ opt_instructions : /* empty */   { $$ = sequence_node(LINE); }
                  | instructions  { $$ = $1; }
                  ;
 
-declaration : opt_qualifier type tIDENTIFIER opt_expr_assig ';' { $$ = new mml::declaration_node(LINE, $1, $3, $4, $2); }
-            | opt_qualifier opt_auto tIDENTIFIER expr_assig ';' { $$ = new mml::declaration_node(LINE, $1, $3, $4, $2); }
-            ;
 
-declarations : declaration ';'               { $$ = new cdk::sequence_node(LINE, $1); }
-             | declarations declaration ';'  { $$ = new cdk::sequence_node(LINE, $2, $1); }
+var_declaration :          type tIDENTIFIER opt_expr_assig ';'   { $$ = new mml::declaration_node(LINE, tPRIVATE, $2, $3, $1); }
+                | tPUBLIC  type tIDENTIFIER opt_expr_assig ';'   { $$ = new mml::declaration_node(LINE, tPUBLIC , $3, $4, $2); }
+                | tFORWARD type tIDENTIFIER opt_expr_assig ';'   { $$ = new mml::declaration_node(LINE, tPUBLIC , $3, $4, $2); }
+                | tFOREIGN type tIDENTIFIER opt_expr_assig ';'   { $$ = new mml::declaration_node(LINE, tPUBLIC , $3, $4, $2); }
+                |          tAUTO_TYPE tIDENTIFIER expr_assig ';' { $$ = new mml::declaration_node(LINE, tPRIVATE, $2, $3, nullptr); }
+                | tPUBLIC  tAUTO_TYPE tIDENTIFIER expr_assig ';' { $$ = new mml::declaration_node(LINE, tPUBLIC , $3, $4, nullptr); }
+                /* | tFORWARD tAUTO_TYPE tIDENTIFIER expr_assig ';' { $$ = new mml::declaration_node(LINE, tPUBLIC , $3, $4, nullptr); } */
+                | tFOREIGN tAUTO_TYPE tIDENTIFIER expr_assig ';' { $$ = new mml::declaration_node(LINE, tPUBLIC , $3, $4, nullptr); }
+                /* |          tIDENTIFIER expr_assig ';'            { $$ = new mml::declaration_node(LINE, tPRIVATE, $2, $3, $1); } */
+                | tPUBLIC  tIDENTIFIER expr_assig ';'            { $$ = new mml::declaration_node(LINE, tPUBLIC , $3, $4, $2); }
+                /* | tFORWARD tIDENTIFIER expr_assig ';'            { $$ = new mml::declaration_node(LINE, tPUBLIC , $3, $4, $2); } */
+                /* | tFOREIGN tIDENTIFIER expr_assig ';'            { $$ = new mml::declaration_node(LINE, tPUBLIC , $3, $4, $2); } */
+                ;    
+     
+declarations : declaration                   { $$ = new cdk::sequence_node(LINE, $1); }
+             | declarations var_declaration  { $$ = new cdk::sequence_node(LINE, $2, $1); }
              ;
 
 opt_declarations : /* empty */   { $$ = sequence_node(LINE); }
@@ -140,4 +196,9 @@ block : '{' opt_declarations opt_instructions '}'  { $$ = new mml::block_node(LI
 lval : tIDENTIFIER             { $$ = new cdk::variable_node(LINE, $1); }
      ;
 
+integer : tINTEGER             { $$ = new cdk::integer_node(LINE, $1); };
+real    : tREAL                { $$ = new cdk::double_node(LINE, $1); };
+string  : tSTRING              { $$ = $1; }
+        | string tSTRING       { $$ = $1; $$->append(*$2); delete $2; }  
+        ;  
 %%
