@@ -31,7 +31,23 @@
 "begin"                return tBEGIN; 
 "end"                  return tEND; 
 "sizeof"               return tSIZEOF; 
-"null"                 return tNULLPTR; 
+"null"                 return tNULLPTR;
+
+"public"               return tPUBLIC;
+"forward"              return tFORWARD;
+"foreign"              return tFOREIGN;
+
+"auto"                 return tAUTO;
+"int"                  return tINT_TYPE;
+"double"               return tREAL_TYPE;
+"string"               return tSTR_TYPE;
+"void"                 return tVOID_TYPE;
+
+"stop"                 return tSTOP;
+"next"                 return tNEXT;
+"return"               return tRETURN;
+
+
 [A-Za-z][A-Za-z0-9_]*  yylval.s = new std::string(yytext); return tIDENTIFIER;
 
 \'                     yy_push_state(X_STRING); yylval.s = new std::string("");
