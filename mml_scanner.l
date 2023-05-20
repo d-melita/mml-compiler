@@ -55,8 +55,28 @@
 <X_STRING>.            *yylval.s += yytext;
 <X_STRING>\n           yyerror("newline in string");
 
-[0-9]+                                           yylval.i = strtol(yytext, nullptr, 10); return tINTEGER;
-( ([0-9]+)?\.([0-9]*)? | ([0-9]*)?\.([0-9]+)? )  yylval.d = strtod(yytext, NULL); return tREAL;
+  /* REAL NUMBERS */
+[0-9]*\.[0-9]+([Ee][-+]?[0-9]+)?          yylval.d = std::stod(yytext); return tREAL_TYPE;
+[0-9]+([Ee][+-]?[0-9]+)                   yylval.d = std::stod(yytext); return tREAL_TYPE;
+
+  /* INTEGERS */
+0[0-7]+ {
+  try {
+    yy.lval.i = std::stoul(yytext, NULL, 8); return tINT_TYPE;
+  } catch (const std::out_of_range& e) {
+    yyerror("Integer out of range);
+  }
+}
+
+0[0-9]+                                   yyerrror("Invalid base 8 number");
+0|[1-9][0-9]* {
+  try {
+    yy.lval.i = std::stoul(yytext, NULL, 10); return tINT_TYPE;
+  } catch (const std::out_of_range& e) {
+    yyerror("Integer out of range);
+  }
+}
+
 
 [-()<>=+*/%;{}.]       return *yytext;
 
