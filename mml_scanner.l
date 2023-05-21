@@ -37,7 +37,7 @@
 "forward"              return tFORWARD;
 "foreign"              return tFOREIGN;
 
-"auto"                 return tAUTO;
+"auto"                 return tAUTO_TYPE;
 "int"                  return tINT_TYPE;
 "double"               return tREAL_TYPE;
 "string"               return tSTR_TYPE;
@@ -62,18 +62,18 @@
   /* INTEGERS */
 0[0-7]+ {
   try {
-    yy.lval.i = std::stoul(yytext, NULL, 8); return tINT_TYPE;
+    yylval.i = std::stoul(yytext, NULL, 8); return tINT_TYPE;
   } catch (const std::out_of_range& e) {
-    yyerror("Integer out of range);
+    yyerror("Integer out of range");
   }
 }
 
-0[0-9]+                                   yyerrror("Invalid base 8 number");
+0[0-9]+                                   yyerror("Invalid base 8 number");
 0|[1-9][0-9]* {
   try {
-    yy.lval.i = std::stoul(yytext, NULL, 10); return tINT_TYPE;
+    yylval.i = std::stoul(yytext, NULL, 10); return tINT_TYPE;
   } catch (const std::out_of_range& e) {
-    yyerror("Integer out of range);
+    yyerror("Integer out of range");
   }
 }
 
