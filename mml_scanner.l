@@ -67,8 +67,8 @@
     yyerror("Integer out of range");
   }
 }
-
 0[0-9]+                                   yyerror("Invalid base 8 number");
+
 0|[1-9][0-9]* {
   try {
     yylval.i = std::stoul(yytext, NULL, 10); return tINT_TYPE;
