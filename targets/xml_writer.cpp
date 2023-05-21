@@ -3,25 +3,37 @@
 #include "targets/type_checker.h"
 #include ".auto/all_nodes.h"  // automatically generated
 
+#include "mml_parser.tab.h"
+
+static std::string qualifier_name(int qualifier) {
+  switch (qualifier) {
+    case tPUBLIC: return "public";
+    case tFOREIGN: return "foreign";
+    case tFORWARD: return "forward";
+    default: return "unknown qualifier";
+  }
+}
+
 //---------------------------------------------------------------------------
 
 void mml::xml_writer::do_nil_node(cdk::nil_node * const node, int lvl) {
-  // EMPTY
+  openTag(node, lvl);
+  closeTag(node, lvl);
 }
 void mml::xml_writer::do_data_node(cdk::data_node * const node, int lvl) {
   // EMPTY
 }
 void mml::xml_writer::do_double_node(cdk::double_node * const node, int lvl) {
-  // EMPTY
+  process_literal(node, lvl);
 }
 void mml::xml_writer::do_not_node(cdk::not_node * const node, int lvl) {
-  // EMPTY
+  do_unary_operation(node, lvl);
 }
 void mml::xml_writer::do_and_node(cdk::and_node * const node, int lvl) {
-  // EMPTY
+  do_binary_operation(node, lvl);
 }
 void mml::xml_writer::do_or_node(cdk::or_node * const node, int lvl) {
-  // EMPTY
+  do_binary_operation(node, lvl);
 }
 
 //---------------------------------------------------------------------------
@@ -201,7 +213,7 @@ void mml::xml_writer::do_block_node(mml::block_node * const node, int lvl) {
 void mml::xml_writer::do_declaration_node(mml::declaration_node * const node, int lvl) {
   // ASSERT_SAFE_EXPRESSIONS;
   os() << std::string(lvl, ' ') << "<" << node->label() 
-       << " qualifier='" << node->qualifier() 
+       << " qualifier='" << qualifier_name(node->qualifier()) 
        << "' identifier='"<< node->identifier() 
        << "' type='" << cdk::to_string(node->type()) << "'>" << std::endl;
   
