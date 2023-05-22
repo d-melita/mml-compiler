@@ -85,9 +85,7 @@ static std::ostringstream strlit;
                         yy_pop_state();
                         return tSTRING;  
                       }
-  
 
-<X_STRING>"...\n"     ;
 <X_STRING>\0          yyerror("NULL character in string");
 <X_STRING>\n          yyerror("Newline in string");
 <X_STRING>.           strlit << *yytext;
