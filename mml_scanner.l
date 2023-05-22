@@ -80,7 +80,7 @@
 
 [-()<>=+*/%;{}.]       return *yytext;
 
-[ \t\n]+               ; /* ignore whitespace */
+[ \t\n\r]+               ; /* ignore whitespace */
 
 .                      yyerror("Unknown character");
 
