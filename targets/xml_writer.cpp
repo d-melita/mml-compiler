@@ -10,6 +10,7 @@ static std::string qualifier_name(int qualifier) {
     case tPUBLIC: return "public";
     case tFOREIGN: return "foreign";
     case tFORWARD: return "forward";
+    case tAUTO_TYPE: return "auto";
     default: return "unknown qualifier";
   }
 }
