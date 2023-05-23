@@ -46,6 +46,7 @@
 %token tNULLPTR
 %token tAUTO_TYPE tINT_TYPE tREAL_TYPE tSTR_TYPE tVOID_TYPE /* type tokens */
 %token tSTOP tNEXT tRETURN
+%token tOR tAND
 
 %nonassoc tIFX
 %nonassoc tELSE

@@ -18,20 +18,21 @@ static std::ostringstream strlit;
 %%
   yydebug=1; set_debug(1);
 
-"--".*                 ; /* ignore comments */
+  /*-------------------------------------*/
+  /* ----------- COMMENTS -------------- */
+  /*-------------------------------------*/
 
-">="                   return tGE; 
-"<="                   return tLE; 
-"=="                   return tEQ; 
-"!="                   return tNE; 
+"//".*                ; /* ignore comment */
 
-"while"                return tWHILE; 
-"if"                   return tIF; 
-"else"                 return tELSE; 
-"!"                    return tPRINT;
-"!!"                   return tPRINTLN;
-"input"                return tINPUT; 
-"sizeof"               return tSIZEOF; 
+"/*"                  yy_push_state(X_COMMENT);
+<X_COMMENT>"/*"       yy_push_state(X_COMMENT);
+<X_COMMENT>"*/"       yy_pop_state();
+<X_COMMENT>.|\n       ; /* ignore comments */
+
+  /*---------------------------------------------------------------------*/
+  /* ----------- CONSTANTS, GLOBAL SYMBOLS AND DATA TYPES -------------- */
+  /*---------------------------------------------------------------------*/
+
 "null"                 return tNULLPTR;
 
 "public"               return tPUBLIC;
@@ -44,34 +45,50 @@ static std::ostringstream strlit;
 "string"               return tSTR_TYPE;
 "void"                 return tVOID_TYPE;
 
-"stop"                 return tSTOP;
-"next"                 return tNEXT;
-"return"               return tRETURN;
-
-  /*-------------------------------------*/
-  /* ----------- COMMENTS -------------- */
-  /*-------------------------------------*/
-
-"//".*\n              { yyless(yyleng - 1); }
-
-"/*"                  yy_push_state(X_COMMENT);
-<X_COMMENT>"/*"       yy_push_state(X_COMMENT);
-<X_COMMENT>"*/"       yy_pop_state();
-<X_COMMENT>.|\n       ;
-
   /*-------------------------------------*/
   /* ----------- FUNCTIONS ------------- */
   /*-------------------------------------*/
 
-[():@,]               return *yytext;
 "begin"                return tBEGIN; 
 "end"                  return tEND;
+
+  /*-----------------------------------------*/
+  /* ----------- INSTRUCTIONS -------------- */
+  /*-----------------------------------------*/
+
+"if"                   return tIF; 
+"else"                 return tELSE;
+
+"while"                return tWHILE;
+
+"!"                    return tPRINT;
+"!!"                   return tPRINTLN;
+
+"stop"                 return tSTOP;
+"next"                 return tNEXT;
+"return"               return tRETURN;
+
+  /*-----------------------------------------*/
+  /* ----------- EXPRESSIONS --------------- */
+  /*-----------------------------------------*/
+[()\[\]+-?*/%+-><~=;,{}@]     return *yytext;
+
+">="                   return tGE; 
+"<="                   return tLE; 
+"=="                   return tEQ; 
+"!="                   return tNE;
+
+"&&"                   return tAND;
+"||"                   return tOR;
+
+"input"                return tINPUT; 
+"sizeof"               return tSIZEOF; 
 
   /*-------------------------------------*/
   /* ---------- IDENTIFIERS ------------ */
   /*-------------------------------------*/
 
-[A-Za-z]([A-Za-z]|[[:digit:]])*  yylval.s = new std::string(yytext); return tIDENTIFIER;
+[A-Za-z][A-Za-z0-9]*  yylval.s = new std::string(yytext); return tIDENTIFIER;
   
   /*-------------------------------------*/
   /* ------------ STRINGS -------------- */
@@ -143,9 +160,6 @@ static std::ostringstream strlit;
     yyerror("Integer out of range");
   }
 }
-
-
-[-()<>=+*/%;{}.]       return *yytext;
 
 [ \t\n\r]+               ; /* ignore whitespace */
 
