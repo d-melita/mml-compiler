@@ -57,7 +57,7 @@
 %left '*' '/' '%'
 %nonassoc tUNARY
 
-%type <node> stmt program
+%type <node> stmt program elif
 %type <sequence> list exprs stmts opt_stmts vars opt_vars declarations opt_declarations
 %type <expression> expr expr_assig opt_expr_assig tINT_TYPE tREAL_TYPE
 %type <declaration> var declaration
@@ -86,14 +86,19 @@ stmt : expr ';'                          { $$ = new mml::evaluation_node(LINE, $
      | tINPUT                            { $$ = new mml::input_node(LINE); }
      | tWHILE '(' expr ')' stmt          { $$ = new mml::while_node(LINE, $3, $5); }
      | tIF '(' expr ')' stmt %prec tIFX  { $$ = new mml::if_node(LINE, $3, $5); }
-     | tIF '(' expr ')' stmt tELSE stmt  { $$ = new mml::if_else_node(LINE, $3, $5, $7); }
+     | tIF '(' expr ')' stmt elif        { $$ = new mml::if_else_node(LINE, $3, $5, $6); }
      | '{' list '}'                      { $$ = $2; }
      | tSTOP ';'                         { $$ = new mml::stop_node(LINE, 1); }
      | tSTOP tINTEGER ';'                { $$ = new mml::stop_node(LINE, $2); }
      | tNEXT ';'                         { $$ = new mml::next_node(LINE, 1); }
      | tNEXT tINTEGER ';'                { $$ = new mml::next_node(LINE, $2); }
      | tRETURN expr ';'                  { $$ = new mml::return_node(LINE, $2); }
-     | block                             { $$ = $1; }  
+     | block                             { $$ = $1; }
+     ;
+
+elif : tELSE stmt                          { $$ = $2; }
+     | tELIF '(' expr ')' stmt %prec tIFX  { $$ = new mml::if_node(LINE, $3, $5); }
+     | tELIF '(' expr ')' stmt elif        { $$ = new mml::if_else_node(LINE, $3, $5, $6); }
      ;
 
 stmts : stmt        { $$ = new cdk::sequence_node(LINE, $1); }
@@ -196,18 +201,14 @@ vars : var          { $$ = new cdk::sequence_node(LINE, $1); }
 var : type tIDENTIFIER  { $$ = new mml::declaration_node(LINE, tPRIVATE, *$2, nullptr, $1); }
     ;
 
-declaration :          type tIDENTIFIER opt_expr_assig ';'   { $$ = new mml::declaration_node(LINE, tPRIVATE, *$2, $3, $1); }
-            | tPUBLIC  type tIDENTIFIER opt_expr_assig ';'   { $$ = new mml::declaration_node(LINE, tPUBLIC , *$3, $4, $2); }
-            | tFORWARD type tIDENTIFIER opt_expr_assig ';'   { $$ = new mml::declaration_node(LINE, tPUBLIC , *$3, $4, $2); }
-            | tFOREIGN type tIDENTIFIER opt_expr_assig ';'   { $$ = new mml::declaration_node(LINE, tPUBLIC , *$3, $4, $2); }
-            |          tAUTO_TYPE tIDENTIFIER expr_assig ';' { $$ = new mml::declaration_node(LINE, tPRIVATE, *$2, $3, nullptr); }
-            | tPUBLIC  tAUTO_TYPE tIDENTIFIER expr_assig ';' { $$ = new mml::declaration_node(LINE, tPUBLIC , *$3, $4, nullptr); }
-         /* | tFORWARD tAUTO_TYPE tIDENTIFIER expr_assig ';' { $$ = new mml::declaration_node(LINE, tPUBLIC , *$3, $4, nullptr); } */
-            | tFOREIGN tAUTO_TYPE tIDENTIFIER expr_assig ';' { $$ = new mml::declaration_node(LINE, tPUBLIC , *$3, $4, nullptr); }
-         /* |          tIDENTIFIER expr_assig ';'            { $$ = new mml::declaration_node(LINE, tPRIVATE, *$2, $3, *$1); } */
-            | tPUBLIC  tIDENTIFIER expr_assig ';'            { $$ = new mml::declaration_node(LINE, tPUBLIC , *$2, $3, nullptr); }
-         /* | tFORWARD tIDENTIFIER expr_assig ';'            { $$ = new mml::declaration_node(LINE, tPUBLIC , *$3, $4, *$2); } */
-         /* | tFOREIGN tIDENTIFIER expr_assig ';'            { $$ = new mml::declaration_node(LINE, tPUBLIC , *$3, $4, *$2); } */
+declaration :          type tIDENTIFIER opt_expr_assig ';'   { $$ = new mml::declaration_node(LINE, tPRIVATE, *$2, $3, $1); delete $2; }
+            | tPUBLIC  type tIDENTIFIER opt_expr_assig ';'   { $$ = new mml::declaration_node(LINE, tPUBLIC , *$3, $4, $2); delete $3; }
+            | tFORWARD type tIDENTIFIER opt_expr_assig ';'   { $$ = new mml::declaration_node(LINE, tPUBLIC , *$3, $4, $2); delete $3; }
+            | tFOREIGN type tIDENTIFIER opt_expr_assig ';'   { $$ = new mml::declaration_node(LINE, tPUBLIC , *$3, $4, $2); delete $3; }
+            |          tAUTO_TYPE tIDENTIFIER expr_assig ';' { $$ = new mml::declaration_node(LINE, tPRIVATE, *$2, $3, nullptr); delete $2; }
+            | tPUBLIC  tAUTO_TYPE tIDENTIFIER expr_assig ';' { $$ = new mml::declaration_node(LINE, tPUBLIC , *$3, $4, nullptr); delete $3; }
+            | tFOREIGN tAUTO_TYPE tIDENTIFIER expr_assig ';' { $$ = new mml::declaration_node(LINE, tPUBLIC , *$3, $4, nullptr); delete $3; }
+            | tPUBLIC  tIDENTIFIER expr_assig ';'            { $$ = new mml::declaration_node(LINE, tPUBLIC , *$2, $3, nullptr); delete $2; }
             ;    
      
 declarations : declaration               { $$ = new cdk::sequence_node(LINE, $1); }
@@ -221,7 +222,7 @@ opt_declarations : /* empty */   { $$ = new cdk::sequence_node(LINE); }
 block : '{' opt_declarations opt_stmts '}'  { $$ = new mml::block_node(LINE, $2, $3); }
       ;
 
-lval : tIDENTIFIER             { $$ = new cdk::variable_node(LINE, $1); }
+lval : tIDENTIFIER             { $$ = new cdk::variable_node(LINE, $1); delete $1; }
      | expr '[' expr ']'       { $$ = new mml::index_node(LINE, $1, $3); }
      ;
 %%

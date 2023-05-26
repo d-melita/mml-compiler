@@ -58,6 +58,7 @@ static std::ostringstream strlit;
 
 "if"                   return tIF; 
 "else"                 return tELSE;
+"elif"                 return tELIF;
 
 "while"                return tWHILE;
 
@@ -138,6 +139,7 @@ static std::ostringstream strlit;
   /*-------------------------------------*/
 
 [0-9]*\.[0-9]+([Ee][-+]?[0-9]+)?          yylval.d = std::stod(yytext); return tREAL_TYPE;
+[0-9]+\.[0-9]*([Ee][-+]?[0-9]+)?          yylval.d = std::stod(yytext); return tREAL_TYPE;
 [0-9]+([Ee][+-]?[0-9]+)                   yylval.d = std::stod(yytext); return tREAL_TYPE;
 
   /*-------------------------------------*/
