@@ -46,7 +46,7 @@
 %token tNULLPTR
 %token tAUTO_TYPE tINT_TYPE tREAL_TYPE tSTR_TYPE tVOID_TYPE /* type tokens */
 %token tSTOP tNEXT tRETURN
-%token tOR tAND
+%token tOR tAND tNOT tEQ tNE tGE tLE
 
 %nonassoc tIFX
 %nonassoc tELSE
@@ -54,10 +54,15 @@
 %nonassoc tELIF
 
 %right '='
-%left tGE tLE tEQ tNE '>' '<'
+%left tOR
+%left tAND
+%nonassoc tNOT
+%left tEQ tNE
+%left tGE tLE '>' '<'
 %left '+' '-'
 %left '*' '/' '%'
-%nonassoc tUNARY
+%nonassoc tUNARY '?'
+%nonassoc '(' '[' '@' 
 
 %type <node> stmt program elif
 %type <sequence> file list exprs stmts opt_stmts vars opt_vars declarations opt_declarations
@@ -78,7 +83,7 @@
 file      : /* empty */       { compiler->ast($$ = new cdk::sequence_node(LINE)); }
           | declarations      { compiler->ast($$ = $1); }
           | program           { compiler->ast($$ = new cdk::sequence_node(LINE, $1)); }
-          | declarations      { compiler->ast($$ = new cdk::sequence_node(LINE, $2, $1)); }
+          ;
 
 
 program	: tBEGIN list tEND { }
@@ -95,7 +100,6 @@ stmt : expr ';'                          { $$ = new mml::evaluation_node(LINE, $
      | tWHILE '(' expr ')' stmt          { $$ = new mml::while_node(LINE, $3, $5); }
      | tIF '(' expr ')' stmt %prec tIFX  { $$ = new mml::if_node(LINE, $3, $5); }
      | tIF '(' expr ')' stmt elif        { $$ = new mml::if_else_node(LINE, $3, $5, $6); }
-     | '{' list '}'                      { $$ = $2; }
      | tSTOP ';'                         { $$ = new mml::stop_node(LINE, 1); }
      | tSTOP tINTEGER ';'                { $$ = new mml::stop_node(LINE, $2); }
      | tNEXT ';'                         { $$ = new mml::next_node(LINE, 1); }
@@ -138,6 +142,9 @@ expr : tINTEGER                     { $$ = new cdk::integer_node(LINE, $1); }
      | expr tLE expr                { $$ = new cdk::le_node(LINE, $1, $3); }
      | expr tNE expr	           { $$ = new cdk::ne_node(LINE, $1, $3); }
      | expr tEQ expr	           { $$ = new cdk::eq_node(LINE, $1, $3); }
+     | expr tAND expr	           { $$ = new cdk::and_node(LINE, $1, $3); }
+     | expr tOR expr	           { $$ = new cdk::or_node(LINE, $1, $3); }
+     | tNOT expr                    { $$ = new cdk::not_node(LINE, $2); }
      | '(' expr ')'                 { $$ = $2; }
      | lval                         { $$ = new cdk::rvalue_node(LINE, $1); }
      | lval '=' expr                { $$ = new cdk::assignment_node(LINE, $1, $3); }

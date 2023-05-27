@@ -72,7 +72,7 @@ static std::ostringstream strlit;
   /*-----------------------------------------*/
   /* ----------- EXPRESSIONS --------------- */
   /*-----------------------------------------*/
-[()\[\]+-?*/%+-><~=;,{}@]     return *yytext;
+[()\[\]+-?*/%+-><=;,{}@]     return *yytext;
 
 ">="                   return tGE; 
 "<="                   return tLE; 
@@ -80,6 +80,7 @@ static std::ostringstream strlit;
 "!="                   return tNE;
 
 "&&"                   return tAND;
+"~"                    return tNOT;
 "||"                   return tOR;
 
 "input"                return tINPUT; 
@@ -138,9 +139,9 @@ static std::ostringstream strlit;
   /* --------- REAL NUMBERS ------------ */
   /*-------------------------------------*/
 
-[0-9]*\.[0-9]+([Ee][-+]?[0-9]+)?          yylval.d = std::stod(yytext); return tREAL_TYPE;
-[0-9]+\.[0-9]*([Ee][-+]?[0-9]+)?          yylval.d = std::stod(yytext); return tREAL_TYPE;
-[0-9]+([Ee][+-]?[0-9]+)                   yylval.d = std::stod(yytext); return tREAL_TYPE;
+[0-9]*\.[0-9]+([Ee][-+]?[0-9]+)?          yylval.d = std::stod(yytext); return tDOUBLE;
+[0-9]+\.[0-9]*([Ee][-+]?[0-9]+)?          yylval.d = std::stod(yytext); return tDOUBLE;
+[0-9]+([Ee][+-]?[0-9]+)                   yylval.d = std::stod(yytext); return tDOUBLE;
 
   /*-------------------------------------*/
   /* ----------- INTEGERS -------------- */
@@ -148,7 +149,7 @@ static std::ostringstream strlit;
 
 0[0-7]+ {
   try {
-    yylval.i = std::stoul(yytext, NULL, 8); return tINT_TYPE;
+    yylval.i = std::stoul(yytext, NULL, 8); return tINTEGER;
   } catch (const std::out_of_range& e) {
     yyerror("Integer out of range");
   }
@@ -157,7 +158,7 @@ static std::ostringstream strlit;
 
 0|[1-9][0-9]* {
   try {
-    yylval.i = std::stoul(yytext, NULL, 10); return tINT_TYPE;
+    yylval.i = std::stoul(yytext, NULL, 10); return tINTEGER;
   } catch (const std::out_of_range& e) {
     yyerror("Integer out of range");
   }
