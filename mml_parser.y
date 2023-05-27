@@ -41,7 +41,7 @@
 %token <i> tINTEGER
 %token <s> tIDENTIFIER tSTRING
 %token <d> tDOUBLE
-%token tWHILE tIF tELIF tELSE tPRINT tPRINTLN tINPUT tBEGIN tEND tSIZEOF
+%token tWHILE tELSE tPRINT tPRINTLN tINPUT tBEGIN tEND tSIZEOF
 %token tPUBLIC tFORWARD tFOREIGN tPRIVATE /* qualifier tokens */
 %token tNULLPTR
 %token tAUTO_TYPE tINT_TYPE tREAL_TYPE tSTR_TYPE tVOID_TYPE /* type tokens */
@@ -50,6 +50,8 @@
 
 %nonassoc tIFX
 %nonassoc tELSE
+%nonassoc tIF
+%nonassoc tELIF
 
 %right '='
 %left tGE tLE tEQ tNE '>' '<'
@@ -58,7 +60,7 @@
 %nonassoc tUNARY
 
 %type <node> stmt program elif
-%type <sequence> list exprs stmts opt_stmts vars opt_vars declarations opt_declarations
+%type <sequence> file list exprs stmts opt_stmts vars opt_vars declarations opt_declarations
 %type <expression> expr expr_assig opt_expr_assig tINT_TYPE tREAL_TYPE
 %type <declaration> var declaration
 %type <func_def> func_def
@@ -72,6 +74,12 @@
 //-- The rules below will be included in yyparse, the main parsing function.
 %}
 %%
+
+file      : /* empty */       { compiler->ast($$ = new cdk::sequence_node(LINE)); }
+          | declarations      { compiler->ast($$ = $1); }
+          | program           { compiler->ast($$ = new cdk::sequence_node(LINE, $1)); }
+          | declarations      { compiler->ast($$ = new cdk::sequence_node(LINE, $2, $1)); }
+
 
 program	: tBEGIN list tEND { }
 	     ;
