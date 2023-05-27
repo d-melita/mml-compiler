@@ -46,7 +46,6 @@
 %token tNULLPTR
 %token tAUTO_TYPE tINT_TYPE tREAL_TYPE tSTR_TYPE tVOID_TYPE /* type tokens */
 %token tSTOP tNEXT tRETURN
-%token tOR tAND tNOT tEQ tNE tGE tLE
 
 %nonassoc tIFX
 %nonassoc tELSE
@@ -65,7 +64,7 @@
 %nonassoc '(' '[' '@' 
 
 %type <node> stmt program elif
-%type <sequence> file list exprs stmts opt_stmts vars opt_vars declarations opt_declarations
+%type <sequence> file list exprs stmts  vars opt_vars declarations 
 %type <expression> expr expr_assig opt_expr_assig tINT_TYPE tREAL_TYPE
 %type <declaration> var declaration
 %type <func_def> func_def
@@ -80,9 +79,10 @@
 %}
 %%
 
-file      : /* empty */       { compiler->ast($$ = new cdk::sequence_node(LINE)); }
-          | declarations      { compiler->ast($$ = $1); }
-          | program           { compiler->ast($$ = new cdk::sequence_node(LINE, $1)); }
+file      : /* empty */           { compiler->ast($$ = new cdk::sequence_node(LINE)); }
+          | declarations          { compiler->ast($$ = $1); }
+          | program               { compiler->ast($$ = new cdk::sequence_node(LINE, $1)); }
+          | declarations program  { compiler->ast($$ = new cdk::sequence_node(LINE, $2, $1)); }
           ;
 
 
@@ -118,9 +118,9 @@ stmts : stmt        { $$ = new cdk::sequence_node(LINE, $1); }
       ;
 
 
-opt_stmts : /* empty */  { $$ = new cdk::sequence_node(LINE); }
+/* opt_stmts :  { $$ = new cdk::sequence_node(LINE); }
           | stmts        { $$ = $1; }
-          ;                 
+          ;                  */
 
                
 exprs : expr              { $$ = new cdk::sequence_node(LINE, $1); }
@@ -230,11 +230,17 @@ declarations : declaration               { $$ = new cdk::sequence_node(LINE, $1)
              | declarations declaration  { $$ = new cdk::sequence_node(LINE, $2, $1); }
              ;
 
-opt_declarations : /* empty */   { $$ = new cdk::sequence_node(LINE); }
+/* opt_declarations :    { $$ = new cdk::sequence_node(LINE); }
                  | declarations  { $$ = $1; }
-                 ;
+                 ; */
 
-block : '{' opt_declarations opt_stmts '}'  { $$ = new mml::block_node(LINE, $2, $3); }
+/* block : '{' opt_declarations opt_stmts '}'  { $$ = new mml::block_node(LINE, $2, $3); }
+      ; */
+
+block : '{' declarations stmts '}' { $$ = new mml::block_node(LINE, $2, $3); }
+      | '{' declarations '}'       { $$ = new mml::block_node(LINE, $2, nullptr); }
+      | '{' stmts '}'              { $$ = new mml::block_node(LINE, nullptr, $2); }
+      | '{' '}'                    { $$ = new mml::block_node(LINE, nullptr, nullptr); }
       ;
 
 lval : tIDENTIFIER             { $$ = new cdk::variable_node(LINE, $1); delete $1; }
