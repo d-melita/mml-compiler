@@ -177,7 +177,7 @@ string : tSTRING            { $$ = $1; }
 type  : tINT_TYPE          { $$ = cdk::primitive_type::create(4, cdk::TYPE_INT); }
       | tREAL_TYPE         { $$ = cdk::primitive_type::create(8, cdk::TYPE_DOUBLE); }
       | tSTR_TYPE          { $$ = cdk::primitive_type::create(4, cdk::TYPE_STRING); }
-      | '[' tVOID_TYPE ']' { $$ = cdk::reference_type::create(4, cdk::primitive_type::create(4, cdk::TYPE_VOID)); }
+      | tVOID_TYPE         { $$ = cdk::primitive_type::create(4, cdk::TYPE_VOID); }
       | '[' type ']'  
       /* Checks for nested void pointers and ignores them (eg. `[[[void]]]` == `[void]`) */
       { 
@@ -201,9 +201,6 @@ types : type           { $$ = new std::vector<std::shared_ptr<cdk::basic_type>>(
 
 func_type : type '<' '>'              { $$ = cdk::functional_type::create($1); }
           | type '<' types '>'        { $$ = cdk::functional_type::create(*$3, $1); }
-          | tVOID_TYPE                { $$ = cdk::primitive_type::create(4, cdk::TYPE_VOID); }
-          | tVOID_TYPE '<' '>'        { $$ = cdk::functional_type::create(cdk::primitive_type::create(4, cdk::TYPE_VOID)); }
-          | tVOID_TYPE '<' types '>'  { $$ = cdk::functional_type::create(*$3, cdk::primitive_type::create(4, cdk::TYPE_VOID)); }
           ;
 
 func_def  : '(' opt_vars ')' '-' '>' type block { $$ = new mml::function_def_node(LINE, $2, $6, $7); }
