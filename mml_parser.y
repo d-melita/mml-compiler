@@ -64,15 +64,15 @@
 %nonassoc '(' '[' '@' 
 
 %type <node> stmt program elif
-%type <sequence> file list exprs stmts  vars opt_vars declarations 
+%type <sequence> file exprs stmts  vars opt_vars declarations 
 %type <expression> expr expr_assig opt_expr_assig tINT_TYPE tREAL_TYPE
 %type <declaration> var declaration
 %type <func_def> func_def
 %type <var_type> type func_type
 %type <var_types> types
 %type <lvalue> lval
-%type <block> block
-
+%type <block> block program_block
+%type <s> string
 
 %{
 //-- The rules below will be included in yyparse, the main parsing function.
@@ -86,12 +86,14 @@ file      : /* empty */           { compiler->ast($$ = new cdk::sequence_node(LI
           ;
 
 
-program	: tBEGIN list tEND { }
+program	: tBEGIN program_block tEND { $$ = new mml::function_def_node(LINE, $2); }
 	     ;
 
-list : stmt	     { $$ = new cdk::sequence_node(LINE, $1); }
-	| list stmt    { $$ = new cdk::sequence_node(LINE, $2, $1); }
-	;
+program_block :  declarations stmts { $$ = new mml::block_node(LINE, $1, $2); }
+      |  declarations               { $$ = new mml::block_node(LINE, $1, nullptr); }
+      |  stmts                      { $$ = new mml::block_node(LINE, nullptr, $1); }
+      | /* empty */                 { $$ = new mml::block_node(LINE, nullptr, nullptr); }
+      ;
 
 stmt : expr ';'                          { $$ = new mml::evaluation_node(LINE, $1); }
  	| exprs tPRINT                      { $$ = new mml::write_node(LINE, $1, false); }
@@ -104,6 +106,7 @@ stmt : expr ';'                          { $$ = new mml::evaluation_node(LINE, $
      | tSTOP tINTEGER ';'                { $$ = new mml::stop_node(LINE, $2); }
      | tNEXT ';'                         { $$ = new mml::next_node(LINE, 1); }
      | tNEXT tINTEGER ';'                { $$ = new mml::next_node(LINE, $2); }
+     | tRETURN ';'                       { $$ = new mml::return_node(LINE, nullptr); }
      | tRETURN expr ';'                  { $$ = new mml::return_node(LINE, $2); }
      | block                             { $$ = $1; }
      ;
@@ -129,7 +132,8 @@ exprs : expr              { $$ = new cdk::sequence_node(LINE, $1); }
 
 
 expr : tINTEGER                     { $$ = new cdk::integer_node(LINE, $1); }
-     | tSTRING                      { $$ = new cdk::string_node(LINE, $1); }
+     | tDOUBLE                      { $$ = new cdk::double_node(LINE, $1); }
+     | string                       { new cdk::string_node(LINE, $1); }
      | '-' expr %prec tUNARY        { $$ = new cdk::neg_node(LINE, $2); }
      | expr '+' expr	           { $$ = new cdk::add_node(LINE, $1, $3); }
      | expr '-' expr	           { $$ = new cdk::sub_node(LINE, $1, $3); }
@@ -170,6 +174,8 @@ opt_expr_assig : /* empty */  { $$ = nullptr; }
                | expr_assig   { $$ = $1; }
                ;
 
+string : tSTRING            { $$ = $1; }
+       | string tSTRING     { $$ = $1; $$->append(*$2); delete $2; }
 
 type  : tINT_TYPE          { $$ = cdk::primitive_type::create(4, cdk::TYPE_INT); }
       | tREAL_TYPE         { $$ = cdk::primitive_type::create(8, cdk::TYPE_DOUBLE); }

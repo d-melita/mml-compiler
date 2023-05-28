@@ -203,10 +203,12 @@ void mml::xml_writer::do_block_node(mml::block_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   openTag(node, lvl);
   openTag("declarations", lvl + 2);
-  node->declarations()->accept(this, lvl + 4);
+  if (node->declarations())
+    node->declarations()->accept(this, lvl + 4);
   closeTag("declarations", lvl + 2);
   openTag("instructions", lvl + 2);
-  node->instructions()->accept(this, lvl + 4);
+  if (node->instructions())
+    node->instructions()->accept(this, lvl + 4);
   closeTag("instructions", lvl + 2);
   closeTag(node, lvl);
 }
@@ -241,9 +243,11 @@ void mml::xml_writer::do_function_call_node(mml::function_call_node *const node,
 void mml::xml_writer::do_function_def_node(mml::function_def_node *const node, int lvl) {
   // ASSERT_SAFE_EXPRESSIONS;
   os() << std::string(lvl, ' ') << "<" << node->label() 
-       << " is_main='" << node->is_main() << "'>" << std::endl;
+       << " is_main='" << node->is_main() 
+      << "' type='" << cdk::to_string(node->type()) << "'>" << std::endl;
   openTag("arguments", lvl + 2);
-  node->arguments()->accept(this, lvl + 4);
+  if (node->arguments())
+    node->arguments()->accept(this, lvl + 4);
   closeTag("arguments", lvl + 2);
   openTag("block", lvl + 2);
   node->block()->accept(this, lvl + 4);

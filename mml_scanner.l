@@ -29,6 +29,79 @@ static std::ostringstream strlit;
 <X_COMMENT>"*/"       yy_pop_state();
 <X_COMMENT>.|\n       ; /* ignore comments */
 
+  /*-------------------------------------*/
+  /* --------- REAL NUMBERS ------------ */
+  /*-------------------------------------*/
+
+[0-9]*\.[0-9]+([Ee][-+]?[0-9]+)?          yylval.d = std::stod(yytext); return tDOUBLE;
+[0-9]+\.[0-9]*([Ee][-+]?[0-9]+)?          yylval.d = std::stod(yytext); return tDOUBLE;
+[0-9]+([Ee][-+]?[0-9]+)                   yylval.d = std::stod(yytext); return tDOUBLE;
+
+  /*-------------------------------------*/
+  /* ----------- INTEGERS -------------- */
+  /*-------------------------------------*/
+
+0[0-7]+              {
+  try { 
+    yylval.i = std::stoul(yytext, NULL, 8); return tINTEGER;
+  } catch (const std::out_of_range& e) {
+    yyerror("Integer is out of range");
+  }
+}
+ 
+0[0-9]+              yyerror("Invalid base 8 number.");
+0|[1-9][0-9]*         {
+  try { 
+    yylval.i = std::stoul(yytext, NULL, 10); 
+    return tINTEGER;
+  } catch (const std::out_of_range& e) {
+    yyerror("Integer is out of range");
+  }
+}
+
+  /*-------------------------------------*/
+  /* ------------ STRINGS -------------- */
+  /*-------------------------------------*/
+
+"\""                   yy_push_state(X_STRING);
+<X_STRING>\\           yy_push_state(X_BACKSLASH);
+<X_STRING>"\""        {
+                        yylval.s = new std::string(strlit.str());
+                        strlit.str("");
+                        yy_pop_state();
+                        return tSTRING;  
+                      }
+
+<X_STRING>\0          yyerror("NULL character in string");
+<X_STRING>\n          yyerror("Newline in string");
+<X_STRING>.           strlit << *yytext;
+
+<X_BACKSLASH>t        strlit << '\t'; yy_pop_state();
+<X_BACKSLASH>n        strlit << '\n'; yy_pop_state();
+<X_BACKSLASH>r        strlit << '\r'; yy_pop_state();
+<X_BACKSLASH>\"       strlit << '\"'; yy_pop_state();
+<X_BACKSLASH>\\       strlit << '\\'; yy_pop_state();
+<X_BACKSLASH>0        yy_push_state(X_STRING_SKIP);
+
+<X_BACKSLASH>[0-7]{1,3}   {
+                            unsigned long res = std::stoul(yytext, NULL, 8);
+                            if (res > 255) {
+                              yyerror("Invalid 8 bit number.");
+                            }
+                            strlit << (char)(unsigned char)res;
+                            yy_pop_state();
+                          }
+
+<X_BACKSLASH>.        strlit << *yytext; yy_pop_state();
+
+<X_STRING_SKIP>"\""   {
+                        yylval.s = new std::string(strlit.str());
+                        strlit.str("");
+                        yy_pop_state(); yy_pop_state(); yy_pop_state();
+                        return tSTRING;
+                      }
+<X_STRING_SKIP>.      ;
+
   /*---------------------------------------------------------------------*/
   /* ----------- CONSTANTS, GLOBAL SYMBOLS AND DATA TYPES -------------- */
   /*---------------------------------------------------------------------*/
@@ -91,78 +164,10 @@ static std::ostringstream strlit;
   /*-------------------------------------*/
 
 [A-Za-z][A-Za-z0-9]*  yylval.s = new std::string(yytext); return tIDENTIFIER;
-  
-  /*-------------------------------------*/
-  /* ------------ STRINGS -------------- */
-  /*-------------------------------------*/
-
-"\""                   yy_push_state(X_STRING);
-<X_STRING>\\           yy_push_state(X_BACKSLASH);
-<X_STRING>"\""        {
-                        yylval.s = new std::string(strlit.str());
-                        strlit.str("");
-                        yy_pop_state();
-                        return tSTRING;  
-                      }
-
-<X_STRING>\0          yyerror("NULL character in string");
-<X_STRING>\n          yyerror("Newline in string");
-<X_STRING>.           strlit << *yytext;
-
-<X_BACKSLASH>t        strlit << '\t'; yy_pop_state();
-<X_BACKSLASH>n        strlit << '\n'; yy_pop_state();
-<X_BACKSLASH>r        strlit << '\r'; yy_pop_state();
-<X_BACKSLASH>\"       strlit << '\"'; yy_pop_state();
-<X_BACKSLASH>\\       strlit << '\\'; yy_pop_state();
-<X_BACKSLASH>0        yy_push_state(X_STRING_SKIP);
-
-<X_BACKSLASH>[0-7]{1,3}   {
-                            unsigned long res = std::stoul(yytext, NULL, 8);
-                            if (res > 255) {
-                              yyerror("Invalid 8 bit number.");
-                            }
-                            strlit << (char)(unsigned char)res;
-                            yy_pop_state();
-                          }
-
-<X_BACKSLASH>.        strlit << *yytext; yy_pop_state();
-
-<X_STRING_SKIP>"\""   {
-                        yylval.s = new std::string(strlit.str());
-                        strlit.str("");
-                        yy_pop_state(); yy_pop_state(); yy_pop_state();
-                        return tSTRING;
-                      }
-<X_STRING_SKIP>.      ;
 
   /*-------------------------------------*/
-  /* --------- REAL NUMBERS ------------ */
+  /* ---------- WHITE SPACE ------------ */
   /*-------------------------------------*/
-
-[0-9]*\.[0-9]+([Ee][-+]?[0-9]+)?          yylval.d = std::stod(yytext); return tDOUBLE;
-[0-9]+\.[0-9]*([Ee][-+]?[0-9]+)?          yylval.d = std::stod(yytext); return tDOUBLE;
-[0-9]+([Ee][+-]?[0-9]+)                   yylval.d = std::stod(yytext); return tDOUBLE;
-
-  /*-------------------------------------*/
-  /* ----------- INTEGERS -------------- */
-  /*-------------------------------------*/
-
-0[0-7]+ {
-  try {
-    yylval.i = std::stoul(yytext, NULL, 8); return tINTEGER;
-  } catch (const std::out_of_range& e) {
-    yyerror("Integer out of range");
-  }
-}
-0[0-9]+                                   yyerror("Invalid base 8 number");
-
-0|[1-9][0-9]* {
-  try {
-    yylval.i = std::stoul(yytext, NULL, 10); return tINTEGER;
-  } catch (const std::out_of_range& e) {
-    yyerror("Integer out of range");
-  }
-}
 
 [ \t\n\r]+               ; /* ignore whitespace */
 
