@@ -15,6 +15,17 @@ static std::string qualifier_name(int qualifier) {
   }
 }
 
+static std::string type(std::shared_ptr<cdk::basic_type> type) {
+  std::string type_string = cdk::to_string(type);
+  // replace all < with &lt;
+  size_t pos = 0;
+  while ((pos = type_string.find("<", pos)) != std::string::npos) {
+    type_string.replace(pos, 1, "&lt;");
+    pos += 4;
+  }
+  return type_string;
+}
+
 //---------------------------------------------------------------------------
 
 void mml::xml_writer::do_nil_node(cdk::nil_node * const node, int lvl) {
@@ -203,12 +214,14 @@ void mml::xml_writer::do_block_node(mml::block_node *const node, int lvl) {
   // ASSERT_SAFE_EXPRESSIONS;
   openTag(node, lvl);
   openTag("declarations", lvl + 2);
-  if (node->declarations())
+  if (node->declarations()) {
     node->declarations()->accept(this, lvl + 4);
+  }
   closeTag("declarations", lvl + 2);
   openTag("instructions", lvl + 2);
-  if (node->instructions())
+  if (node->instructions()) {
     node->instructions()->accept(this, lvl + 4);
+  }
   closeTag("instructions", lvl + 2);
   closeTag(node, lvl);
 }
@@ -218,6 +231,7 @@ void mml::xml_writer::do_declaration_node(mml::declaration_node *const node, int
   os() << std::string(lvl, ' ') << "<" << node->label() 
        << " qualifier='" << qualifier_name(node->qualifier()) 
        << "' identifier='"<< node->identifier() 
+       << "' type='" << (node->type() ? type(node->type()) : "variable")
        << "'>" << std::endl;
   
   if (node->rvalue()) {
@@ -232,12 +246,14 @@ void mml::xml_writer::do_function_call_node(mml::function_call_node *const node,
   // ASSERT_SAFE_EXPRESSIONS;
   openTag(node, lvl);
   openTag("identifier", lvl + 2);
-  if (node->identifier())
+  if (node->identifier()) {
     node->identifier()->accept(this, lvl + 4);
+  }
   closeTag("identifier", lvl + 2);
   openTag("arguments", lvl + 2);
-  if (node->arguments())
+  if (node->arguments()) {
     node->arguments()->accept(this, lvl + 4);
+  }
   closeTag("arguments", lvl + 2);
   closeTag(node, lvl);
 }
@@ -246,10 +262,12 @@ void mml::xml_writer::do_function_def_node(mml::function_def_node *const node, i
   // ASSERT_SAFE_EXPRESSIONS;
   os() << std::string(lvl, ' ') << "<" << node->label() 
        << " is_main='" << (node->is_main()? "true" : "false") 
+        << "' type='" << type(node->type())
        << "'>" << std::endl;
   openTag("arguments", lvl + 2);
-  if (node->arguments())
+  if (node->arguments()) {
     node->arguments()->accept(this, lvl + 4);
+  }
   closeTag("arguments", lvl + 2);
   openTag("block", lvl + 2);
   node->block()->accept(this, lvl + 4);
@@ -299,8 +317,9 @@ void mml::xml_writer::do_return_node(mml::return_node *const node, int lvl) {
   // ASSERT_SAFE_EXPRESSIONS;
   openTag(node, lvl);
   openTag("retval", lvl + 2);
-  if (node->retval())
+  if (node->retval()) {
     node->retval()->accept(this, lvl + 4);
+  }
   closeTag("retval", lvl + 2);
   closeTag(node, lvl);
 }
