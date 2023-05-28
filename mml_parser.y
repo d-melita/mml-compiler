@@ -133,21 +133,22 @@ exprs : expr              { $$ = new cdk::sequence_node(LINE, $1); }
 
 expr : tINTEGER                     { $$ = new cdk::integer_node(LINE, $1); }
      | tDOUBLE                      { $$ = new cdk::double_node(LINE, $1); }
-     | string                       { new cdk::string_node(LINE, $1); }
+     | string                       { $$ = new cdk::string_node(LINE, $1); }
+     | '+' expr %prec tUNARY     { $$ = new mml::identity_node(LINE, $2); }
      | '-' expr %prec tUNARY        { $$ = new cdk::neg_node(LINE, $2); }
-     | expr '+' expr	           { $$ = new cdk::add_node(LINE, $1, $3); }
-     | expr '-' expr	           { $$ = new cdk::sub_node(LINE, $1, $3); }
-     | expr '*' expr	           { $$ = new cdk::mul_node(LINE, $1, $3); }
-     | expr '/' expr	           { $$ = new cdk::div_node(LINE, $1, $3); }
-     | expr '%' expr	           { $$ = new cdk::mod_node(LINE, $1, $3); }
-     | expr '<' expr	           { $$ = new cdk::lt_node(LINE, $1, $3); }
-     | expr '>' expr	           { $$ = new cdk::gt_node(LINE, $1, $3); }
-     | expr tGE expr	           { $$ = new cdk::ge_node(LINE, $1, $3); }
+     | expr '+' expr	            { $$ = new cdk::add_node(LINE, $1, $3); }
+     | expr '-' expr	            { $$ = new cdk::sub_node(LINE, $1, $3); }
+     | expr '*' expr	            { $$ = new cdk::mul_node(LINE, $1, $3); }
+     | expr '/' expr	            { $$ = new cdk::div_node(LINE, $1, $3); }
+     | expr '%' expr	            { $$ = new cdk::mod_node(LINE, $1, $3); }
+     | expr '<' expr	            { $$ = new cdk::lt_node(LINE, $1, $3); }
+     | expr '>' expr	            { $$ = new cdk::gt_node(LINE, $1, $3); }
+     | expr tGE expr	            { $$ = new cdk::ge_node(LINE, $1, $3); }
      | expr tLE expr                { $$ = new cdk::le_node(LINE, $1, $3); }
-     | expr tNE expr	           { $$ = new cdk::ne_node(LINE, $1, $3); }
-     | expr tEQ expr	           { $$ = new cdk::eq_node(LINE, $1, $3); }
-     | expr tAND expr	           { $$ = new cdk::and_node(LINE, $1, $3); }
-     | expr tOR expr	           { $$ = new cdk::or_node(LINE, $1, $3); }
+     | expr tNE expr	            { $$ = new cdk::ne_node(LINE, $1, $3); }
+     | expr tEQ expr	            { $$ = new cdk::eq_node(LINE, $1, $3); }
+     | expr tAND expr	            { $$ = new cdk::and_node(LINE, $1, $3); }
+     | expr tOR expr	            { $$ = new cdk::or_node(LINE, $1, $3); }
      | tNOT expr                    { $$ = new cdk::not_node(LINE, $2); }
      | '(' expr ')'                 { $$ = $2; }
      | lval                         { $$ = new cdk::rvalue_node(LINE, $1); }
@@ -161,10 +162,6 @@ expr : tINTEGER                     { $$ = new cdk::integer_node(LINE, $1); }
      | tNULLPTR                     { $$ = new mml::nullptr_node(LINE); }
      | func_def                     { $$ = $1; }
      | tSIZEOF '(' expr ')'         { $$ = new mml::sizeof_node(LINE, $3); }
-     | '+' tINT_TYPE %prec tUNARY   { $$ = new mml::identity_node(LINE, $2); }
-     | '+' tREAL_TYPE %prec tUNARY  { $$ = new mml::identity_node(LINE, $2); }
-     | '-' tINT_TYPE %prec tUNARY   { $$ = new cdk::neg_node(LINE, $2); }
-     | '-' tREAL_TYPE %prec tUNARY  { $$ = new cdk::neg_node(LINE, $2); }
      ;
 
 expr_assig : '=' expr { $$ = $2; }
@@ -204,6 +201,7 @@ types : type           { $$ = new std::vector<std::shared_ptr<cdk::basic_type>>(
 
 func_type : type '<' '>'              { $$ = cdk::functional_type::create($1); }
           | type '<' types '>'        { $$ = cdk::functional_type::create(*$3, $1); }
+          | tVOID_TYPE                { $$ = cdk::primitive_type::create(4, cdk::TYPE_VOID); }
           | tVOID_TYPE '<' '>'        { $$ = cdk::functional_type::create(cdk::primitive_type::create(4, cdk::TYPE_VOID)); }
           | tVOID_TYPE '<' types '>'  { $$ = cdk::functional_type::create(*$3, cdk::primitive_type::create(4, cdk::TYPE_VOID)); }
           ;
