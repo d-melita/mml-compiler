@@ -33,9 +33,14 @@ static std::ostringstream strlit;
   /* --------- REAL NUMBERS ------------ */
   /*-------------------------------------*/
 
-[0-9]*\.[0-9]+([Ee][-+]?[0-9]+)?          yylval.d = std::stod(yytext); return tDOUBLE;
-[0-9]+\.[0-9]*([Ee][-+]?[0-9]+)?          yylval.d = std::stod(yytext); return tDOUBLE;
-[0-9]+([Ee][-+]?[0-9]+)                   yylval.d = std::stod(yytext); return tDOUBLE;
+[0-9]*\.[0-9]+([Ee][-+]?[0-9]+)? | [0-9]+\.[0-9]*([Ee][-+]?[0-9]+)? | [0-9]+([Ee][-+]?[0-9]+) {
+  try {
+    yylval.d = std::stod(yytext); 
+    return tDOUBLE;
+  } catch (const std::out_of_range&) {
+    yyerror("double is out of range");
+  }
+}          
 
   /*-------------------------------------*/
   /* ----------- INTEGERS -------------- */
@@ -43,13 +48,14 @@ static std::ostringstream strlit;
 
 0[0-7]+              {
   try { 
-    yylval.i = std::stoi(yytext, NULL, 8); return tINTEGER;
+    yylval.i = std::stoi(yytext, NULL, 8); 
+    return tINTEGER;
   } catch (const std::out_of_range& e) {
     yyerror("Integer is out of range");
   }
 }
- 
 0[0-9]+              yyerror("Invalid base 8 number.");
+
 0|[1-9][0-9]*         {
   try { 
     yylval.i = std::stoi(yytext, NULL, 10); 
@@ -95,6 +101,7 @@ static std::ostringstream strlit;
 <X_BACKSLASH>.        strlit << *yytext; yy_pop_state();
 
 <X_STRING_SKIP>\0     yyerror("NULL character in string");
+<X_STRING_SKIP>\n     yyerror("Newline in string");
 <X_STRING_SKIP>"\""   {
                         yylval.s = new std::string(strlit.str());
                         strlit.str("");
