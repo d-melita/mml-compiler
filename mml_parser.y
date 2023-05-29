@@ -119,12 +119,6 @@ elif : tELSE stmt                          { $$ = $2; }
 stmts : stmt        { $$ = new cdk::sequence_node(LINE, $1); }
       | stmts stmt  { $$ = new cdk::sequence_node(LINE, $2, $1); }
       ;
-
-
-/* opt_stmts :  { $$ = new cdk::sequence_node(LINE); }
-          | stmts        { $$ = $1; }
-          ;                  */
-
                
 exprs : expr              { $$ = new cdk::sequence_node(LINE, $1); }
       | exprs ',' expr    { $$ = new cdk::sequence_node(LINE, $3, $1); }
@@ -230,13 +224,6 @@ declaration :          type tIDENTIFIER opt_expr_assig ';'   { $$ = new mml::dec
 declarations : declaration               { $$ = new cdk::sequence_node(LINE, $1); }
              | declarations declaration  { $$ = new cdk::sequence_node(LINE, $2, $1); }
              ;
-
-/* opt_declarations :    { $$ = new cdk::sequence_node(LINE); }
-                 | declarations  { $$ = $1; }
-                 ; */
-
-/* block : '{' opt_declarations opt_stmts '}'  { $$ = new mml::block_node(LINE, $2, $3); }
-      ; */
 
 block : '{' declarations stmts '}' { $$ = new mml::block_node(LINE, $2, $3); }
       | '{' declarations '}'       { $$ = new mml::block_node(LINE, $2, nullptr); }

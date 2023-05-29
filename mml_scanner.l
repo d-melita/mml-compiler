@@ -43,7 +43,7 @@ static std::ostringstream strlit;
 
 0[0-7]+              {
   try { 
-    yylval.i = std::stoul(yytext, NULL, 8); return tINTEGER;
+    yylval.i = std::stoi(yytext, NULL, 8); return tINTEGER;
   } catch (const std::out_of_range& e) {
     yyerror("Integer is out of range");
   }
@@ -52,7 +52,7 @@ static std::ostringstream strlit;
 0[0-9]+              yyerror("Invalid base 8 number.");
 0|[1-9][0-9]*         {
   try { 
-    yylval.i = std::stoul(yytext, NULL, 10); 
+    yylval.i = std::stoi(yytext, NULL, 10); 
     return tINTEGER;
   } catch (const std::out_of_range& e) {
     yyerror("Integer is out of range");
@@ -84,7 +84,7 @@ static std::ostringstream strlit;
 <X_BACKSLASH>0        yy_push_state(X_STRING_SKIP);
 
 <X_BACKSLASH>[0-7]{1,3}   {
-                            unsigned long res = std::stoul(yytext, NULL, 8);
+                            unsigned long res = std::stoi(yytext, NULL, 8);
                             if (res > 255) {
                               yyerror("Invalid 8 bit number.");
                             }
@@ -94,6 +94,7 @@ static std::ostringstream strlit;
 
 <X_BACKSLASH>.        strlit << *yytext; yy_pop_state();
 
+<X_STRING_SKIP>\0     yyerror("NULL character in string");
 <X_STRING_SKIP>"\""   {
                         yylval.s = new std::string(strlit.str());
                         strlit.str("");
