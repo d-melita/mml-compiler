@@ -15,15 +15,14 @@ static std::string qualifier_name(int qualifier) {
   }
 }
 
-static std::string type(std::shared_ptr<cdk::basic_type> type) {
-  std::string type_string = cdk::to_string(type);
+static std::string type(std::string type) {
   // replace all < with &lt;
   size_t pos = 0;
-  while ((pos = type_string.find("<", pos)) != std::string::npos) {
-    type_string.replace(pos, 1, "&lt;");
+  while ((pos = type.find("<", pos)) != std::string::npos) {
+    type.replace(pos, 1, "&lt;");
     pos += 4;
   }
-  return type_string;
+  return type;
 }
 
 //---------------------------------------------------------------------------
@@ -231,7 +230,7 @@ void mml::xml_writer::do_declaration_node(mml::declaration_node *const node, int
   os() << std::string(lvl, ' ') << "<" << node->label() 
        << " qualifier='" << qualifier_name(node->qualifier()) 
        << "' identifier='"<< node->identifier() 
-       << "' type='" << (node->type() ? type(node->type()) : "variable")
+       << "' type='" << (node->type() ? type(cdk::to_string(node->type())) : "variable")
        << "'>" << std::endl;
   
   if (node->rvalue()) {
@@ -262,7 +261,7 @@ void mml::xml_writer::do_function_def_node(mml::function_def_node *const node, i
   // ASSERT_SAFE_EXPRESSIONS;
   os() << std::string(lvl, ' ') << "<" << node->label() 
        << " is_main='" << (node->is_main()? "true" : "false") 
-        << "' type='" << type(node->type())
+        << "' type='" << type(cdk::to_string(node->type()))
        << "'>" << std::endl;
   openTag("arguments", lvl + 2);
   if (node->arguments()) {
