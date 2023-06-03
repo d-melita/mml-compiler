@@ -371,7 +371,8 @@ void mml::type_checker::do_stack_alloc_node(mml::stack_alloc_node *const node, i
   if (!node->argument()->is_typed(cdk::TYPE_INT)) {
     throw std::string("expected integer argument in stack allocation expression");
   }
-  // todo
+  auto mytype = cdk::reference_type::create(4, cdk::primitive_type::create(4, cdk::TYPE_INT));
+  node->type(mytype);
 }
 
 void mml::type_checker::do_stop_node(mml::stop_node *const node, int lvl) {
