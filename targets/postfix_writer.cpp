@@ -231,6 +231,69 @@ void mml::postfix_writer::do_function_call_node(mml::function_call_node *const n
 }
 
 void mml::postfix_writer::do_function_def_node(mml::function_def_node *const node, int lvl) {
+  
+  ASSERT_SAFE_EXPRESSIONS;
+  
+  _curr_function = new_symbol();
+  
+  std::string func_name = _curr_function->name();
+  bool is_public = false;
+  
+  if (_curr_function) {
+    _function_symbols.push_back(_curr_function);
+    reset_new_symbol();
+  }
+  
+  // prepare for arguments (old_fp & old_ret, 4 bytes each)
+  _offset = 8;    
+  _symtab.push(); 
+  
+  if (node->arguments()->size() > 0) {
+    
+    _in_function_args = true;
+  
+    for (size_t i = 0; i < node->arguments()->size(); i++) {
+      cdk::basic_node *arg = node->arguments()->node(i);
+      if (arg == nullptr) {
+        break;
+      }
+      arg->accept(this, 0);
+    }
+    
+    _in_function_args = false;
+  }
+  
+  std::string _function_label = mklbl(++_lbl);
+  _return_labels.push_back(_function_label);
+  _pf.TEXT(_return_labels.back());
+  _pf.ALIGN();
+  if (is_public) {
+    _pf.GLOBAL(func_name, _pf.FUNC());
+  }
+  _pf.LABEL(_function_label);
+  
+  frame_size_calculator lsc(_compiler, _symtab, _curr_function);
+  
+  _symtab.push();
+  node->accept(&lsc, lvl);
+  _symtab.pop();
+  
+  _pf.ENTER(lsc.localsize());
+  
+  // prepare for local vars
+  _offset = 0;
+  
+  bool _prev = _in_function_body;
+  _in_function_body = true;
+  if (node->block()) {
+    node->block()->accept(this, lvl + 4);
+  }
+  _in_function_body = _prev;
+  
+  if (_in_function_body) {
+    _pf.TEXT(_return_labels.back());
+    _pf.ADDR(_function_label);
+  } 
 }
 
 void mml::postfix_writer::do_identity_node(mml::identity_node *const node, int lvl) {
@@ -261,4 +324,34 @@ void mml::postfix_writer::do_stop_node(mml::stop_node *const node, int lvl) {
 }
 
 void mml::postfix_writer::do_write_node(mml::write_node *const node, int lvl) {
+  
+  ASSERT_SAFE_EXPRESSIONS;
+
+  for (size_t ix = 0; ix < node->expressions()->size(); ix++) {
+    auto child = dynamic_cast<cdk::expression_node*>(node->expressions()->node(ix));
+
+    std::shared_ptr<cdk::basic_type> type = child->type();
+    child->accept(this, lvl);
+
+    if (type->name() == cdk::TYPE_INT) {
+      _external_functions.insert("printi");
+      _pf.CALL("printi");
+      _pf.TRASH(4);
+    } else if (type->name() == cdk::TYPE_STRING) {
+      _external_functions.insert("prints");
+      _pf.CALL("prints");
+      _pf.TRASH(4);
+    } else if (type->name() == cdk::TYPE_DOUBLE) {
+      _external_functions.insert("printd");
+      _pf.CALL("printd");
+      _pf.TRASH(8);
+    } else {
+      std::cerr << "ERROR: cannot print expression of unknown type" << std::endl;
+      return;
+    }
+    if (node->has_newline()) {
+      _external_functions.insert("println");
+      _pf.CALL("println");
+    }
+  }
 }

@@ -3,6 +3,8 @@
 
 #include "targets/basic_ast_visitor.h"
 
+#include <set>
+#include "targets/symbol.h"
 #include <sstream>
 #include <cdk/emitters/basic_postfix_emitter.h>
 
@@ -13,8 +15,16 @@ namespace mml {
   //!
   class postfix_writer: public basic_ast_visitor {
     cdk::symbol_table<mml::symbol> &_symtab;
+    std::shared_ptr<mml::symbol> _curr_function; // Saves the function and arguments
+    std::vector<std::shared_ptr<mml::symbol>> _function_symbols; // Saves the function symbols
+    std::set<std::string> _external_functions;
+    std::string _function_label;
+    std::vector<std::string> _return_labels;
     cdk::basic_postfix_emitter &_pf;
+    int _offset;
     int _lbl;
+    bool _in_function_body;
+    bool _in_function_args;
 
   public:
     postfix_writer(std::shared_ptr<cdk::compiler> compiler, cdk::symbol_table<mml::symbol> &symtab,
