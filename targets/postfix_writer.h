@@ -25,6 +25,7 @@ namespace mml {
     int _lbl;
     bool _in_function_body;
     bool _in_function_args;
+    bool _return_seen;
 
   public:
     postfix_writer(std::shared_ptr<cdk::compiler> compiler, cdk::symbol_table<mml::symbol> &symtab,

@@ -11,6 +11,7 @@ namespace mml {
     std::shared_ptr<cdk::basic_type> _type;
     std::string _name;
     long _value; // hack!
+    bool _is_main;
 
   public:
     symbol(std::shared_ptr<cdk::basic_type> type, const std::string &name, long value) :
@@ -35,6 +36,12 @@ namespace mml {
     }
     long value(long v) {
       return _value = v;
+    }
+    bool is_main() {
+      return _is_main;
+    }
+    void set_main(bool val) {
+      _is_main = val;
     }
   };
 

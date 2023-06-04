@@ -231,13 +231,11 @@ void mml::postfix_writer::do_function_call_node(mml::function_call_node *const n
 }
 
 void mml::postfix_writer::do_function_def_node(mml::function_def_node *const node, int lvl) {
-  
   ASSERT_SAFE_EXPRESSIONS;
   
   _curr_function = new_symbol();
-  
-  std::string func_name = _curr_function->name();
   bool is_public = false;
+  std::string func_name;
   
   if (_curr_function) {
     _function_symbols.push_back(_curr_function);
@@ -248,13 +246,13 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
   _offset = 8;    
   _symtab.push(); 
   
-  if (node->arguments()->size() > 0) {
+  if (node->arguments()) {
     
     _in_function_args = true;
   
     for (size_t i = 0; i < node->arguments()->size(); i++) {
       cdk::basic_node *arg = node->arguments()->node(i);
-      if (arg == nullptr) {
+      if (!arg) {
         break;
       }
       arg->accept(this, 0);
@@ -263,7 +261,7 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
     _in_function_args = false;
   }
   
-  std::string _function_label = mklbl(++_lbl);
+  _function_label = mklbl(++_lbl);
   _return_labels.push_back(_function_label);
   _pf.TEXT(_return_labels.back());
   _pf.ALIGN();
@@ -289,11 +287,21 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
     node->block()->accept(this, lvl + 4);
   }
   _in_function_body = _prev;
+
+  _symtab.pop();
+
+  if (!_return_seen) {
+    _pf.LEAVE();
+    _pf.RET();
+  }
+
+  _return_labels.pop_back();
+  if (_curr_function) _function_symbols.pop_back();
   
   if (_in_function_body) {
-    _pf.TEXT(_return_labels.back());
+    //_pf.TEXT(_return_labels.back());
     _pf.ADDR(_function_label);
-  } 
+  }
 }
 
 void mml::postfix_writer::do_identity_node(mml::identity_node *const node, int lvl) {
@@ -312,6 +320,24 @@ void mml::postfix_writer::do_nullptr_node(mml::nullptr_node *const node, int lvl
 }
 
 void mml::postfix_writer::do_return_node(mml::return_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  _return_seen = true;
+  auto current_function = _function_symbols.back();
+  std::shared_ptr<cdk::basic_type> outputType = cdk::functional_type::cast(current_function->type())->output(0);
+  if (outputType->name() != cdk::TYPE_VOID) {
+    node->retval()->accept(this, lvl + 2);
+    if (outputType->name() == cdk::TYPE_INT || outputType->name() == cdk::TYPE_STRING 
+    || outputType->name() == cdk::TYPE_POINTER || outputType->name() == cdk::TYPE_FUNCTIONAL) {
+      _pf.STFVAL32();
+    } else if (outputType->name() == cdk::TYPE_DOUBLE) {
+      if (node->retval()->type()->name() == cdk::TYPE_INT) _pf.I2D();
+      _pf.STFVAL64();
+    } else {
+      std::cerr << node->lineno() << " ERROR: Unknown return type" << std::endl;
+    }
+  }
+  _pf.LEAVE();
+  _pf.RET();
 }
 
 void mml::postfix_writer::do_sizeof_node(mml::sizeof_node *const node, int lvl) {
