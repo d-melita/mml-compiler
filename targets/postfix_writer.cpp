@@ -4,6 +4,7 @@
 #include "targets/postfix_writer.h"
 #include "targets/frame_size_calculator.h"
 #include ".auto/all_nodes.h"  // all_nodes.h is automatically generated
+#include "targets/symbol.h"
 
 //---------------------------------------------------------------------------
 
@@ -222,6 +223,20 @@ void mml::postfix_writer::do_address_of_node(mml::address_of_node *const node, i
 }
 
 void mml::postfix_writer::do_block_node(mml::block_node * const node, int lvl) {
+
+    ASSERT_SAFE_EXPRESSIONS;
+
+    std::cout << "[* Debug] Entered do_block_node" << std::endl;
+    _symtab.push();
+    if (node->declarations()) {
+      std::cout << "[* Debug] Accepting declarations" << std::endl;
+      node->declarations()->accept(this, lvl + 2);
+    }
+    if (node->instructions()) {
+      std::cout << "[* Debug] Accepting instructions" << std::endl;
+      node->instructions()->accept(this, lvl + 2);
+    }
+    _symtab.pop();
 }
 
 void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node, int lvl) {
@@ -230,8 +245,77 @@ void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node
 void mml::postfix_writer::do_function_call_node(mml::function_call_node *const node, int lvl) {
 }
 
+
+
 void mml::postfix_writer::do_function_def_node(mml::function_def_node *const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
+  
+  if (node->is_main()) {
+    
+    std::shared_ptr<mml::symbol> symbol;
+
+    for (std::string name : _not_declared_symbols) {
+      auto symbol = _symtab.find(name, 0);
+      if (symbol->is_foreign()) {
+        _external_functions.insert(name);
+      } else {
+        _pf.BSS();
+        _pf.ALIGN();
+        _pf.LABEL(name);
+        _pf.SALLOC(symbol->type()->size());    
+      }
+    }
+    
+    symbol = new_symbol();
+    _function_symbols.push_back(symbol);
+    reset_new_symbol();
+
+    _return_labels.push_back("_main");
+    
+    _symtab.push(); // _level++; new context;
+    _pf.TEXT(_return_labels.back());
+    _pf.ALIGN();
+    _pf.GLOBAL("_main", _pf.FUNC());
+    _pf.LABEL("_main");
+
+    frame_size_calculator lsc(_compiler, _symtab, symbol);
+
+    // trick to render all inserted symbols during this visit useless
+    _symtab.push();
+    node->accept(&lsc, lvl);
+    _symtab.pop();
+  
+    _pf.ENTER(lsc.localsize());
+
+    bool _prev = _return_seen;
+    _return_seen = false;
+    _in_function_body = true;
+    // FIXME: Maybe `if (node->block()->instructions())` and `node->block()->instructions()->accept(...);`
+    if (node->block()) {
+      node->block()->accept(this, lvl + 2);
+    }
+    _in_function_body = false;
+
+    _symtab.pop();
+    
+    _return_labels.pop_back();
+    if (!_return_seen) {
+      _pf.INT(0);
+      _pf.STFVAL32();
+    }
+    _pf.LEAVE();
+    _pf.RET();
+
+    _function_symbols.pop_back();
+    for (std::string ext : _external_functions) {
+      _pf.EXTERN(ext);
+    }
+    _external_functions.clear();
+    _return_seen = _prev;
+    
+    std::cout << "[* Debug] Finished `is_main`" << std::endl;
+    //return;
+  }
   
   _curr_function = new_symbol();
   bool is_public = false;
@@ -299,9 +383,10 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
   if (_curr_function) _function_symbols.pop_back();
   
   if (_in_function_body) {
-    //_pf.TEXT(_return_labels.back());
+    _pf.TEXT(_return_labels.back());
     _pf.ADDR(_function_label);
   }
+  std::cout << "[* Debug] Finished not-main definition node" << std::endl;
 }
 
 void mml::postfix_writer::do_identity_node(mml::identity_node *const node, int lvl) {
@@ -321,23 +406,36 @@ void mml::postfix_writer::do_nullptr_node(mml::nullptr_node *const node, int lvl
 
 void mml::postfix_writer::do_return_node(mml::return_node *const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
+  std::cout << "[* Debug] Started do_return_node" << std::endl;
   _return_seen = true;
   auto current_function = _function_symbols.back();
+  std::cout << "[* Debug] Ded1" << std::endl;
+  std::cout << "[* Debug] " << current_function << std::endl;
+  std::cout << "[* Debug] " << current_function->type() << std::endl;
   std::shared_ptr<cdk::basic_type> outputType = cdk::functional_type::cast(current_function->type())->output(0);
+  std::cout << "[* Debug] Ded1.5" << std::endl;
   if (outputType->name() != cdk::TYPE_VOID) {
+    std::cout << "[* Debug] Ded2" << std::endl;
     node->retval()->accept(this, lvl + 2);
+    std::cout << "[* Debug] Ded3" << std::endl;
     if (outputType->name() == cdk::TYPE_INT || outputType->name() == cdk::TYPE_STRING 
     || outputType->name() == cdk::TYPE_POINTER || outputType->name() == cdk::TYPE_FUNCTIONAL) {
+      std::cout << "[* Debug] Ded4" << std::endl;
       _pf.STFVAL32();
     } else if (outputType->name() == cdk::TYPE_DOUBLE) {
+        std::cout << "[* Debug] Ded5" << std::endl;
       if (node->retval()->type()->name() == cdk::TYPE_INT) _pf.I2D();
-      _pf.STFVAL64();
+        std::cout << "[* Debug] Ded6" << std::endl;
+        _pf.STFVAL64();
     } else {
+      std::cout << "[* Debug] Ded7" << std::endl;
       std::cerr << node->lineno() << " ERROR: Unknown return type" << std::endl;
     }
   }
+  std::cout << "[* Debug] Ded8" << std::endl;
   _pf.LEAVE();
   _pf.RET();
+  std::cout << "[* Debug] Finished do_return_node" << std::endl;
 }
 
 void mml::postfix_writer::do_sizeof_node(mml::sizeof_node *const node, int lvl) {
@@ -350,6 +448,8 @@ void mml::postfix_writer::do_stop_node(mml::stop_node *const node, int lvl) {
 }
 
 void mml::postfix_writer::do_write_node(mml::write_node *const node, int lvl) {
+  
+  std::cout << "[* Debug] Started do_write_node" << std::endl;
   
   ASSERT_SAFE_EXPRESSIONS;
 
@@ -380,4 +480,6 @@ void mml::postfix_writer::do_write_node(mml::write_node *const node, int lvl) {
       _pf.CALL("println");
     }
   }
+  
+  std::cout << "[* Debug] Finished do_write_node" << std::endl;
 }

@@ -2,10 +2,15 @@
 #include "targets/type_checker.h"
 #include ".auto/all_nodes.h"  // automatically generated
 #include <cdk/types/primitive_type.h>
-
 #include <mml_parser.tab.h>
 
 #define ASSERT_UNSPEC { if (node->type() != nullptr && !node->is_typed(cdk::TYPE_UNSPEC)) return; }
+
+#define DEBUG 1
+void debug(std::string str) {
+  if (DEBUG) std::cout << "[*] (Debug) " << str << std::endl;
+}
+
 
 void mml::type_checker::do_BooleanLogicalExpression(cdk::binary_operation_node *const node, int lvl) {
   ASSERT_UNSPEC;
@@ -254,7 +259,7 @@ void mml::type_checker::do_assignment_node(cdk::assignment_node *const node, int
   try {
     node->lvalue()->accept(this, lvl);
   } catch (const std::string &id) {
-    auto symbol = std::make_shared<mml::symbol>(cdk::primitive_type::create(4, cdk::TYPE_INT), id, 0);
+    auto symbol = std::make_shared<mml::symbol>(cdk::primitive_type::create(4, cdk::TYPE_INT), id, 0, tPRIVATE);
     _symtab.insert(id, symbol);
     _parent->set_new_symbol(symbol);  // advise parent that a symbol has been inserted
     node->lvalue()->accept(this, lvl);  //DAVID: bah!
@@ -313,12 +318,82 @@ void mml::type_checker::do_block_node(mml::block_node * const node, int lvl) {
 }
 
 void mml::type_checker::do_declaration_node(mml::declaration_node * const node, int lvl) {
+  // TODO
 }
 
 void mml::type_checker::do_function_call_node(mml::function_call_node *const node, int lvl) {
+
+  ASSERT_UNSPEC;
+  
+  std::vector<std::shared_ptr<cdk::basic_type>> in_types;
+  std::shared_ptr<cdk::basic_type> out_type;
+  
+  if (node->identifier()){
+    
+    node->identifier()->accept(this, lvl + 2);
+    
+    if (!(node->identifier()->type()->name() == cdk::TYPE_FUNCTIONAL)) {
+      throw std::string("ERROR: expected a pointer to call function");
+    }
+    
+    in_types = cdk::functional_type::cast(node->identifier()->type())->input()->components();
+    out_type = cdk::functional_type::cast(node->identifier()->type())->output(0);
+  }
+  // Recursive call (`@`)
+  else {
+    auto symbol = _symtab.find("@", 1);
+    
+    if (symbol == nullptr) {
+      throw std::string("ERROR: Recursive symbol used outside a function");
+    }
+    else if (symbol->is_main()) {
+      throw std::string("ERROR: Recursive symbol used in main function");
+    }
+    
+    in_types = cdk::functional_type::cast(symbol->type())->input()->components();
+    out_type = cdk::functional_type::cast(symbol->type())->output(0);
+  }
+  
+  node->type(out_type);   
+
+  if (node->arguments()->size() == in_types.size()) {
+    
+    node->arguments()->accept(this, lvl + 4);
+    
+    for (size_t i = 0; i < node->arguments()->size(); i++) {
+      if (node->getArgument(i)->type()->name() == in_types[i]->name()) continue;
+      if (in_types[i]->name() == cdk::TYPE_DOUBLE && node->getArgument(i)->is_typed(cdk::TYPE_INT)) continue;
+      throw std::string("ERROR: type mismatch for argument " + std::to_string(i + 1) + ".");
+    }
+  } 
+  else {
+    throw std::string(
+        "ERROR: number of arguments in call (" + std::to_string(node->arguments()->size()) + ") must match declaration ("
+            + std::to_string(in_types.size()) + ").");
+  }
 }
 
 void mml::type_checker::do_function_def_node(mml::function_def_node *const node, int lvl) {
+  
+  // FIXME Assert Necessary?
+  ASSERT_UNSPEC
+  
+  std::vector<std::shared_ptr<cdk::basic_type>> in_types;
+  
+  for (size_t i = 0; i < node->arguments()->size(); i++) {
+    in_types.push_back(node->getArgument(i)->type());
+  }
+  node->type(cdk::functional_type::create(in_types, node->get_return_type()));
+
+  auto func = mml::create_symbol(node->type(), "@", 0, tPRIVATE);
+ 
+  if (_symtab.find_local(func->name())) {
+    _symtab.replace(func->name(), func);
+  } 
+  else if (!_symtab.insert(func->name(), func)) {
+      throw std::string("ERROR: there was a problem inserting the function `@`");
+  }
+  _parent->set_new_symbol(func);
 }
 
 void mml::type_checker::do_identity_node(mml::identity_node *const node, int lvl) {
@@ -357,6 +432,7 @@ void mml::type_checker::do_nullptr_node(mml::nullptr_node *const node, int lvl) 
 }
 
 void mml::type_checker::do_return_node(mml::return_node *const node, int lvl) {
+  // TODO
 }
 
 void mml::type_checker::do_sizeof_node(mml::sizeof_node *const node, int lvl) {

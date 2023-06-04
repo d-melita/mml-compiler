@@ -34,6 +34,10 @@ namespace mml {
         return _arguments;
     }
 
+    inline cdk::expression_node* getArgument(size_t i) {
+        return dynamic_cast<cdk::expression_node*>(_arguments->node(i));
+    }
+
     void accept(basic_ast_visitor *sp, int level) {
       sp->do_function_call_node(this, level);
     }

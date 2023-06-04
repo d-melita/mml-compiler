@@ -11,11 +11,13 @@ namespace mml {
     std::shared_ptr<cdk::basic_type> _type;
     std::string _name;
     long _value; // hack!
+    int _qualifier;
+    bool _is_foreign;
     bool _is_main;
 
   public:
-    symbol(std::shared_ptr<cdk::basic_type> type, const std::string &name, long value) :
-        _type(type), _name(name), _value(value) {
+    symbol(std::shared_ptr<cdk::basic_type> type, const std::string &name, long value, int qualifier) :
+        _type(type), _name(name), _value(value), _qualifier(qualifier), _is_foreign(false), _is_main(false) {
     }
 
     virtual ~symbol() {
@@ -43,7 +45,18 @@ namespace mml {
     void set_main(bool val) {
       _is_main = val;
     }
+    bool is_foreign() {
+      return _is_foreign;
+    }
+    void set_foreign(bool val) {
+      _is_foreign = val;
+    }
+    
   };
+
+  inline auto create_symbol(std::shared_ptr<cdk::basic_type> type, const std::string &name, long value, int qualifier) {
+      return std::make_shared<symbol>(type, name, value, qualifier);
+  }
 
 } // mml
 

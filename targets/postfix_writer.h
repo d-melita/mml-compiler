@@ -20,6 +20,7 @@ namespace mml {
     std::set<std::string> _external_functions;
     std::string _function_label;
     std::vector<std::string> _return_labels;
+    std::set<std::string> _not_declared_symbols;
     cdk::basic_postfix_emitter &_pf;
     int _offset;
     int _lbl;
