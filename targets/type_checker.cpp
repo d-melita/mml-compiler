@@ -374,26 +374,36 @@ void mml::type_checker::do_function_call_node(mml::function_call_node *const nod
 }
 
 void mml::type_checker::do_function_def_node(mml::function_def_node *const node, int lvl) {
-  
-  // FIXME Assert Necessary?
   ASSERT_UNSPEC
-  
-  std::vector<std::shared_ptr<cdk::basic_type>> in_types;
-  
-  for (size_t i = 0; i < node->arguments()->size(); i++) {
-    in_types.push_back(node->getArgument(i)->type());
-  }
-  node->type(cdk::functional_type::create(in_types, node->get_return_type()));
+  if (node->is_main()) {
+    auto mainfunc = mml::create_symbol(cdk::functional_type::create(cdk::primitive_type::create(4, cdk::TYPE_INT)), "_main", 0, tPRIVATE);
+    mainfunc->set_main(true);
+    auto cdkInt = cdk::primitive_type::create(4, cdk::TYPE_INT);
+    std::vector<std::shared_ptr<cdk::basic_type>> input_types;
+    auto mainat = mml::create_symbol(cdk::reference_type::create(4, cdkInt), "@", 0, tPUBLIC);
+    mainat->set_main(true);
+    if (_symtab.find_local(mainat->name())) {
+      _symtab.replace(mainat->name(), mainat);
+    } else {
+      if (!_symtab.insert(mainat->name(), mainat)) {
+        std::cerr << "ERROR: error inserting main @" << std::endl;
+        return;
+      }
+    }
+    _parent->set_new_symbol(mainfunc);
+  } else {
+    auto function = mml::create_symbol(node->type(), "@", 0, tPRIVATE);
 
-  auto func = mml::create_symbol(node->type(), "@", 0, tPRIVATE);
- 
-  if (_symtab.find_local(func->name())) {
-    _symtab.replace(func->name(), func);
-  } 
-  else if (!_symtab.insert(func->name(), func)) {
-      throw std::string("ERROR: there was a problem inserting the function `@`");
+    if (_symtab.find_local(function->name())) {
+      _symtab.replace(function->name(), function);
+    } else {
+      if (!_symtab.insert(function->name(), function)) {
+        std::cerr << "ERROR: error inserting function" << std::endl;
+        return;
+      }
+    }
+    _parent->set_new_symbol(function);
   }
-  _parent->set_new_symbol(func);
 }
 
 void mml::type_checker::do_identity_node(mml::identity_node *const node, int lvl) {
