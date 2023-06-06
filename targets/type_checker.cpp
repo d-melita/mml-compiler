@@ -253,25 +253,167 @@ void mml::type_checker::do_rvalue_node(cdk::rvalue_node *const node, int lvl) {
   }
 }
 
+
+static bool check_pointed_types_compatibility(std::shared_ptr<cdk::basic_type> lvalue_type, std::shared_ptr<cdk::basic_type> rvalue_type) {
+  
+  while (rvalue_type != nullptr && lvalue_type->name() == cdk::TYPE_POINTER && rvalue_type->name() == cdk::TYPE_POINTER) {
+    lvalue_type = cdk::reference_type::cast(lvalue_type)->referenced();
+    rvalue_type = cdk::reference_type::cast(rvalue_type)->referenced();
+  }
+  
+  return rvalue_type == nullptr || lvalue_type->name() != rvalue_type->name();
+}
+
+
+bool check_function_types_compatibility(std::shared_ptr<cdk::functional_type> lvalue_type, std::shared_ptr<cdk::functional_type> rvalue_type) {
+
+  if (lvalue_type->output(0)->name() == cdk::TYPE_POINTER && 
+      (rvalue_type->output(0)->name() != cdk::TYPE_POINTER || 
+       !check_pointed_types_compatibility(lvalue_type->output(0), rvalue_type->output(0)))) {
+    return false;
+  }
+  else if (lvalue_type->output(0)->name() == cdk::TYPE_DOUBLE && 
+           (rvalue_type->output(0)->name() != cdk::TYPE_INT && 
+            rvalue_type->output(0)->name() != cdk::TYPE_DOUBLE)) {
+    return false;
+  }
+  else if (lvalue_type->output(0)->name() == cdk::TYPE_FUNCTIONAL && 
+           (rvalue_type->output(0)->name() != cdk::TYPE_FUNCTIONAL || 
+            !check_function_types_compatibility(cdk::functional_type::cast(lvalue_type->output(0)), 
+                                                cdk::functional_type::cast(rvalue_type->output(0))))) {
+    return false;
+  }
+  else if (lvalue_type->output(0)->name() != rvalue_type->output(0)->name()) {
+    return false;
+  }
+  else if (lvalue_type->input_length() != rvalue_type->input_length()) {
+    return false;
+  }
+  
+  for (size_t i = 0; i < lvalue_type->input_length(); i++) {
+    if (rvalue_type->input(i)->name() == cdk::TYPE_POINTER && 
+        (rvalue_type->input(i)->name() != cdk::TYPE_POINTER || 
+         !check_pointed_types_compatibility(lvalue_type->input(i), rvalue_type->input(i)))) {
+        return false;
+    } 
+    else if (lvalue_type->input(i)->name() == cdk::TYPE_FUNCTIONAL && 
+             (rvalue_type->input(i)->name() != cdk::TYPE_FUNCTIONAL || 
+              check_function_types_compatibility(cdk::functional_type::cast(lvalue_type->input(i)), cdk::functional_type::cast(rvalue_type->input(i))))) {
+        return false;
+    } 
+    else if (rvalue_type->input(i)->name() == cdk::TYPE_DOUBLE &&
+             (lvalue_type->input(i)->name() != cdk::TYPE_INT && 
+              lvalue_type->input(i)->name() != cdk::TYPE_DOUBLE)) {
+        return false;
+    } 
+    else if ((lvalue_type->input(i)->name() != rvalue_type->input(i)->name())) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+
 void mml::type_checker::do_assignment_node(cdk::assignment_node *const node, int lvl) {
   ASSERT_UNSPEC;
 
-  try {
-    node->lvalue()->accept(this, lvl);
-  } catch (const std::string &id) {
-    auto symbol = std::make_shared<mml::symbol>(cdk::primitive_type::create(4, cdk::TYPE_INT), id, 0, tPRIVATE);
-    _symtab.insert(id, symbol);
-    _parent->set_new_symbol(symbol);  // advise parent that a symbol has been inserted
-    node->lvalue()->accept(this, lvl);  //DAVID: bah!
+  node->lvalue()->accept(this, lvl + 4);
+  node->rvalue()->accept(this, lvl + 4);
+
+  if (node->lvalue()->is_typed(cdk::TYPE_INT)){
+    
+    if (node->rvalue()->is_typed(cdk::TYPE_INT)) {
+      node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    }
+    else if (node->rvalue()->is_typed(cdk::TYPE_UNSPEC)) {
+      node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+      node->rvalue()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    }
+    else {
+      throw std::string("wrong assignment to integer");
+    }
   }
-
-  if (!node->lvalue()->is_typed(cdk::TYPE_INT)) throw std::string("wrong type in left argument of assignment expression");
-
-  node->rvalue()->accept(this, lvl + 2);
-  if (!node->rvalue()->is_typed(cdk::TYPE_INT)) throw std::string("wrong type in right argument of assignment expression");
-
-  // in MML, expressions are always int
-  node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  
+  else if (node->lvalue()->is_typed(cdk::TYPE_DOUBLE)){
+    
+    if (node->rvalue()->is_typed(cdk::TYPE_DOUBLE) || node->rvalue()->is_typed(cdk::TYPE_INT)) {
+      node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+    } 
+    else if (node->rvalue()->is_typed(cdk::TYPE_UNSPEC)) {
+      node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+      node->rvalue()->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+    } 
+    else {
+      throw std::string("wrong assignment to real");
+    }
+  }
+  
+  else if (node->lvalue()->is_typed(cdk::TYPE_STRING)){
+    
+    if (node->rvalue()->is_typed(cdk::TYPE_STRING)) {
+      node->type(cdk::primitive_type::create(4, cdk::TYPE_STRING));
+    } 
+    else if (node->rvalue()->is_typed(cdk::TYPE_UNSPEC)) {
+      node->type(cdk::primitive_type::create(4, cdk::TYPE_STRING));
+      node->rvalue()->type(cdk::primitive_type::create(4, cdk::TYPE_STRING));
+    } 
+    else {
+      throw std::string("wrong assignment to string");
+    }
+  } 
+  
+  else if (node->lvalue()->is_typed(cdk::TYPE_VOID)){
+    // TODO should be done?
+  }
+  
+  else if (node->lvalue()->is_typed(cdk::TYPE_POINTER)){
+    
+    if (node->rvalue()->is_typed(cdk::TYPE_POINTER)) {
+      
+      // Peels layers of `[[...]]` until it reaches the last layer
+      auto lvalue_type = node->lvalue()->type();
+      auto rvalue_type = node->rvalue()->type(); 
+      if (!check_pointed_types_compatibility(lvalue_type, rvalue_type)) {
+        throw std::string("wrong number of pointer depth assignment / type to pointer");
+      }
+      node->type(node->rvalue()->type()); 
+    } 
+    // TODO: not sure on this one
+    else if (node->rvalue()->is_typed(cdk::TYPE_UNSPEC)) {             
+      node->type(cdk::primitive_type::create(4, cdk::TYPE_ERROR));
+      node->rvalue()->type(cdk::primitive_type::create(4, cdk::TYPE_ERROR));
+    } 
+    else {
+      throw std::string("wrong assignment to pointer");
+    }
+  }
+  
+  else if (node->lvalue()->is_typed(cdk::TYPE_FUNCTIONAL)){
+    
+    if (node->rvalue()->is_typed(cdk::TYPE_FUNCTIONAL)) {
+        if (!(check_function_types_compatibility(cdk::functional_type::cast(node->lvalue()->type()), cdk::functional_type::cast(node->rvalue()->type()))
+             || (node->rvalue()->is_typed(cdk::TYPE_POINTER) && 
+                 cdk::reference_type::cast(node->rvalue()->type())->referenced() == nullptr))) {
+          
+          throw std::string("wrong type for function initializer");
+        }
+      node->type(node->rvalue()->type());
+   
+    } 
+    // TODO: not sure on this one
+    else if (node->rvalue()->is_typed(cdk::TYPE_UNSPEC)) {              
+      node->type(cdk::primitive_type::create(4, cdk::TYPE_ERROR));
+      node->rvalue()->type(cdk::primitive_type::create(4, cdk::TYPE_ERROR));
+    } 
+    else {
+      throw std::string("wrong assignment to function");
+    }
+  }
+  
+  else {
+    throw std::string("wrong types in assignment");
+  }
 }
 
 //---------------------------------------------------------------------------
