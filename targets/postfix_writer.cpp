@@ -5,6 +5,7 @@
 #include "targets/frame_size_calculator.h"
 #include ".auto/all_nodes.h"  // all_nodes.h is automatically generated
 #include "targets/symbol.h"
+#include <mml_parser.tab.h>
 
 //---------------------------------------------------------------------------
 
@@ -266,7 +267,8 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
       }
     }
     
-    symbol = new_symbol();
+    auto int_func_type = cdk::functional_type::create(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    symbol = create_symbol(int_func_type, "_main", 0, tPRIVATE);
     _function_symbols.push_back(symbol);
     reset_new_symbol();
 
@@ -410,8 +412,6 @@ void mml::postfix_writer::do_return_node(mml::return_node *const node, int lvl) 
   _return_seen = true;
   auto current_function = _function_symbols.back();
   std::cout << "[* Debug] Ded1" << std::endl;
-  std::cout << "[* Debug] " << current_function << std::endl;
-  std::cout << "[* Debug] " << current_function->type() << std::endl;
   std::shared_ptr<cdk::basic_type> outputType = cdk::functional_type::cast(current_function->type())->output(0);
   std::cout << "[* Debug] Ded1.5" << std::endl;
   if (outputType->name() != cdk::TYPE_VOID) {
