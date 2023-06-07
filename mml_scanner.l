@@ -40,7 +40,16 @@ static std::ostringstream strlit;
   } catch (const std::out_of_range&) {
     yyerror("double is out of range");
   }
-}          
+}     
+
+[0-9]+([eE][+-]?[0-9]+)                          {
+  try {
+    yylval.d = std::stod(yytext); 
+    return tDOUBLE;
+  } catch (const std::out_of_range&) {
+    yyerror("double is out of range");
+  }
+}
 
   /*-------------------------------------*/
   /* ----------- INTEGERS -------------- */
@@ -100,15 +109,16 @@ static std::ostringstream strlit;
 
 <X_BACKSLASH>.        strlit << *yytext; yy_pop_state();
 
-<X_STRING_SKIP>\0     yyerror("NULL character in string");
-<X_STRING_SKIP>\n     yyerror("Newline in string");
-<X_STRING_SKIP>"\""   {
-                        yylval.s = new std::string(strlit.str());
-                        strlit.str("");
-                        yy_pop_state(); yy_pop_state(); yy_pop_state();
-                        return tSTRING;
-                      }
-<X_STRING_SKIP>.      ;
+<X_STRING_SKIP>\\\"|\\\\  ;
+<X_STRING_SKIP>\0         yyerror("NULL character in string");
+<X_STRING_SKIP>\n         yyerror("Newline in string");
+<X_STRING_SKIP>"\""       {
+                            yylval.s = new std::string(strlit.str());
+                            strlit.str("");
+                            yy_pop_state(); yy_pop_state(); yy_pop_state();
+                            return tSTRING;
+                          }
+<X_STRING_SKIP>.          ;
 
   /*---------------------------------------------------------------------*/
   /* ----------- CONSTANTS, GLOBAL SYMBOLS AND DATA TYPES -------------- */
@@ -129,6 +139,9 @@ static std::ostringstream strlit;
   /*-------------------------------------*/
   /* ----------- FUNCTIONS ------------- */
   /*-------------------------------------*/
+
+[@{}<>]                return *yytext;
+"->"                   return tARROW;
 
 "begin"                return tBEGIN; 
 "end"                  return tEND;
@@ -153,7 +166,7 @@ static std::ostringstream strlit;
   /*-----------------------------------------*/
   /* ----------- EXPRESSIONS --------------- */
   /*-----------------------------------------*/
-[()\[\]+-?*/%+-><=;,{}@]     return *yytext;
+[-+*/%\[\]~?=();,]     return *yytext;
 
 ">="                   return tGE; 
 "<="                   return tLE; 
@@ -161,7 +174,6 @@ static std::ostringstream strlit;
 "!="                   return tNE;
 
 "&&"                   return tAND;
-"~"                    return tNOT;
 "||"                   return tOR;
 
 "input"                return tINPUT; 

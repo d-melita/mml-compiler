@@ -46,6 +46,7 @@
 %token tNULLPTR
 %token tAUTO_TYPE tINT_TYPE tREAL_TYPE tSTR_TYPE tVOID_TYPE /* type tokens */
 %token tSTOP tNEXT tRETURN
+%token tARROW
 
 %nonassoc tIFX
 %nonassoc tELSE
@@ -55,13 +56,13 @@
 %right '='
 %left tOR
 %left tAND
-%nonassoc tNOT
+%nonassoc '~'
 %left tEQ tNE
 %left tGE tLE '>' '<'
 %left '+' '-'
 %left '*' '/' '%'
-%nonassoc tUNARY '?'
-%nonassoc '(' '[' '@' 
+%nonassoc tUNARY
+%nonassoc '(' '[' 
 
 %type <node> stmt program elif
 %type <sequence> file exprs stmts  vars opt_vars declarations 
@@ -125,11 +126,11 @@ exprs : expr              { $$ = new cdk::sequence_node(LINE, $1); }
       ;
 
 
-expr : tINTEGER                     { $$ = new cdk::integer_node(LINE, $1); }
-     | tDOUBLE                      { $$ = new cdk::double_node(LINE, $1); }
-     | string                       { $$ = new cdk::string_node(LINE, $1); }
-     | '+' expr %prec tUNARY     { $$ = new mml::identity_node(LINE, $2); }
-     | '-' expr %prec tUNARY        { $$ = new cdk::neg_node(LINE, $2); }
+expr : tINTEGER                      { $$ = new cdk::integer_node(LINE, $1); }
+     | tDOUBLE                       { $$ = new cdk::double_node(LINE, $1); }
+     | string                        { $$ = new cdk::string_node(LINE, $1); }
+     | '+' expr %prec tUNARY         { $$ = new mml::identity_node(LINE, $2); }
+     | '-' expr %prec tUNARY         { $$ = new cdk::neg_node(LINE, $2); }
      | expr '+' expr	            { $$ = new cdk::add_node(LINE, $1, $3); }
      | expr '-' expr	            { $$ = new cdk::sub_node(LINE, $1, $3); }
      | expr '*' expr	            { $$ = new cdk::mul_node(LINE, $1, $3); }
@@ -138,24 +139,24 @@ expr : tINTEGER                     { $$ = new cdk::integer_node(LINE, $1); }
      | expr '<' expr	            { $$ = new cdk::lt_node(LINE, $1, $3); }
      | expr '>' expr	            { $$ = new cdk::gt_node(LINE, $1, $3); }
      | expr tGE expr	            { $$ = new cdk::ge_node(LINE, $1, $3); }
-     | expr tLE expr                { $$ = new cdk::le_node(LINE, $1, $3); }
+     | expr tLE expr                 { $$ = new cdk::le_node(LINE, $1, $3); }
      | expr tNE expr	            { $$ = new cdk::ne_node(LINE, $1, $3); }
      | expr tEQ expr	            { $$ = new cdk::eq_node(LINE, $1, $3); }
      | expr tAND expr	            { $$ = new cdk::and_node(LINE, $1, $3); }
      | expr tOR expr	            { $$ = new cdk::or_node(LINE, $1, $3); }
-     | tNOT expr                    { $$ = new cdk::not_node(LINE, $2); }
-     | '(' expr ')'                 { $$ = $2; }
-     | lval                         { $$ = new cdk::rvalue_node(LINE, $1); }
-     | lval '=' expr                { $$ = new cdk::assignment_node(LINE, $1, $3); }
-     | lval '?'                     { $$ = new mml::address_of_node(LINE, $1); }
-     | expr '(' exprs ')'           { $$ = new mml::function_call_node(LINE, $1, $3); }
-     | expr '(' ')'                 { $$ = new mml::function_call_node(LINE, $1); }
-     | '@' '(' exprs ')'            { $$ = new mml::function_call_node(LINE, nullptr, $3); }
-     | '@' '(' ')'                  { $$ = new mml::function_call_node(LINE, nullptr); }
-     | '[' expr ']'                 { $$ = new mml::stack_alloc_node(LINE, $2); }
-     | tNULLPTR                     { $$ = new mml::nullptr_node(LINE); }
-     | func_def                     { $$ = $1; }
-     | tSIZEOF '(' expr ')'         { $$ = new mml::sizeof_node(LINE, $3); }
+     | '~' expr                      { $$ = new cdk::not_node(LINE, $2); }
+     | '(' expr ')'                  { $$ = $2; }
+     | lval                          { $$ = new cdk::rvalue_node(LINE, $1); }
+     | lval '=' expr                 { $$ = new cdk::assignment_node(LINE, $1, $3); }
+     | lval '?'                      { $$ = new mml::address_of_node(LINE, $1); }
+     | expr '(' exprs ')'            { $$ = new mml::function_call_node(LINE, $1, $3); }
+     | expr '(' ')'                  { $$ = new mml::function_call_node(LINE, $1); }
+     | '@' '(' exprs ')'             { $$ = new mml::function_call_node(LINE, nullptr, $3); }
+     | '@' '(' ')'                   { $$ = new mml::function_call_node(LINE, nullptr); }
+     | '[' expr ']'                  { $$ = new mml::stack_alloc_node(LINE, $2); }
+     | tNULLPTR                      { $$ = new mml::nullptr_node(LINE); }
+     | func_def                      { $$ = $1; }
+     | tSIZEOF '(' expr ')'          { $$ = new mml::sizeof_node(LINE, $3); }
      ;
 
 expr_assig : '=' expr { $$ = $2; }
@@ -187,7 +188,6 @@ type  : tINT_TYPE          { $$ = cdk::primitive_type::create(4, cdk::TYPE_INT);
       | func_type          { $$ = $1; }
       ;
       
-      
 types : type           { $$ = new std::vector<std::shared_ptr<cdk::basic_type>>(); $$->push_back($1); }
       | types ',' type { $$ = $1; $$->push_back($3); }
       ;
@@ -197,7 +197,7 @@ func_type : type '<' '>'              { $$ = cdk::functional_type::create($1); }
           | type '<' types '>'        { $$ = cdk::functional_type::create(*$3, $1); }
           ;
 
-func_def  : '(' opt_vars ')' '-' '>' type block { $$ = new mml::function_def_node(LINE, $2, $6, $7); }
+func_def  : '(' opt_vars ')' tARROW type block { $$ = new mml::function_def_node(LINE, $2, $5, $6); }
           ;
           
 opt_vars : /* empty */ { $$ = new cdk::sequence_node(LINE); }
