@@ -245,8 +245,14 @@ void mml::postfix_writer::do_ge_node(cdk::ge_node * const node, int lvl) {
 }
 void mml::postfix_writer::do_gt_node(cdk::gt_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  node->left()->accept(this, lvl);
-  node->right()->accept(this, lvl);
+  node->left()->accept(this, lvl + 2);
+  if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+    _pf.I2D();
+  }
+  node->right()->accept(this, lvl + 2);
+  if (node->right()->is_typed(cdk::TYPE_INT) && node->left()->is_typed(cdk::TYPE_DOUBLE)) {
+    _pf.I2D();
+  }
   _pf.GT();
 }
 void mml::postfix_writer::do_ne_node(cdk::ne_node * const node, int lvl) {
@@ -282,13 +288,13 @@ void mml::postfix_writer::do_variable_node(cdk::variable_node * const node, int 
   ASSERT_SAFE_EXPRESSIONS;
   const std::string &id = node->name();
   auto symbol = _symtab.find(id);
+  std::cout << symbol->offset() << std::endl;
  
   if (symbol->is_foreign()) {
     _extern_label = symbol->name();
   } else if (symbol->offset() == 0) {
     _pf.ADDR(symbol->name());
   } else {
-     //std::cout << id + " é dos argumentos!" << std::endl;
     _pf.LOCAL(symbol->offset());
   }
 }
@@ -424,7 +430,6 @@ void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node
   }
 
   if (!_in_function_args && !_in_function_body) {
-    std::cout << "[* Debug] here" << std::endl;
     _not_declared_symbols.insert(symbol->name());
   }
   

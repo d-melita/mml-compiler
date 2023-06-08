@@ -25,8 +25,8 @@ namespace mml {
     cdk::basic_postfix_emitter &_pf;
     int _lbl;
     int _offset;
-    bool _in_function_body;
-    bool _in_function_args;
+    bool _in_function_body = false;
+    bool _in_function_args = false;
     bool _return_seen;
 
   public:
