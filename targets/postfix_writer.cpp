@@ -48,9 +48,11 @@ void mml::postfix_writer::do_or_node(cdk::or_node * const node, int lvl) {
 //---------------------------------------------------------------------------
 
 void mml::postfix_writer::do_sequence_node(cdk::sequence_node * const node, int lvl) {
+  std::cout << "[* Debug] Entered do_sequence_node" << std::endl;
   for (size_t i = 0; i < node->size(); i++) {
     node->node(i)->accept(this, lvl);
   }
+  std::cout << "[* Debug] Leaving do_sequence_node" << std::endl;
 }
 
 //---------------------------------------------------------------------------
@@ -390,15 +392,13 @@ void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node
   int offset = 0;
   int type_size = node->type()->size();
   
-  if (_in_function_body) {
+  if (_in_function_args) {
+    offset = _offset;
+    _offset += type_size;
+  } else if (_in_function_body) {
     _offset -= type_size;
     offset = _offset;
-  }
-  else if (_in_function_args) {
-    offset = _offset;
-    _offset += type_size;  
-  }
-  else {
+  } else {
     offset = 0;
   }
   
@@ -414,14 +414,15 @@ void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node
   }
   
   if (node->rvalue()) {
+    std::cout << "[* Debug] Accepting rvalue" << std::endl;
     if (_in_function_body) {
-      node->accept(this, lvl);
+      node->rvalue()->accept(this, lvl);
       if (symbol->is_typed(cdk::TYPE_INT) || symbol->is_typed(cdk::TYPE_STRING) ||
       symbol->is_typed(cdk::TYPE_POINTER) || symbol->is_typed(cdk::TYPE_FUNCTIONAL)) {
         _pf.LOCAL(symbol->offset());
         _pf.STINT();
       } else if (symbol->is_typed(cdk::TYPE_DOUBLE)) {
-        if (node->is_typed(cdk::TYPE_INT)) {
+        if (node->rvalue()->is_typed(cdk::TYPE_INT)) {
           _pf.I2D();
         }
         _pf.LOCAL(symbol->offset());
@@ -431,18 +432,19 @@ void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node
         return;
       }
     } else {
+      std::cout << "[* Debug] Not in function body" << std::endl;
       if (symbol->is_typed(cdk::TYPE_INT) || symbol->is_typed(cdk::TYPE_DOUBLE) ||
       symbol->is_typed(cdk::TYPE_POINTER)) {
         _pf.DATA();
         _pf.ALIGN();
         _pf.LABEL(symbol->name());
         if (symbol->is_typed(cdk::TYPE_INT) || symbol->is_typed(cdk::TYPE_POINTER)) {
-          node->accept(this, lvl);
+          node->rvalue()->accept(this, lvl);
         } else if (symbol->is_typed(cdk::TYPE_DOUBLE)) {
-          if (node->is_typed(cdk::TYPE_DOUBLE)) {
-            node->accept(this, lvl);
-          } else if (node->is_typed(cdk::TYPE_INT)) {
-            cdk::integer_node *dclini = dynamic_cast<cdk::integer_node*>(node);
+          if (node->rvalue()->is_typed(cdk::TYPE_DOUBLE)) {
+            node->rvalue()->accept(this, lvl);
+          } else if (node->rvalue()->is_typed(cdk::TYPE_INT)) {
+            cdk::integer_node *dclini = dynamic_cast<cdk::integer_node*>(node->rvalue());
             cdk::double_node ddi(dclini->lineno(), dclini->value());
             ddi.accept(this, lvl);
           } else {
@@ -453,11 +455,11 @@ void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node
         _pf.DATA();
         _pf.ALIGN();
         _pf.LABEL(symbol->name());
-        node->accept(this, lvl);
+        node->rvalue()->accept(this, lvl);
       } else if (symbol->is_typed(cdk::TYPE_FUNCTIONAL)) {
         _function_symbols.push_back(symbol);
         reset_new_symbol();
-        node->accept(this, lvl);
+        node->rvalue()->accept(this, lvl);
         _pf.DATA();
         if (_function_symbols.back()->qualifier() == tPUBLIC) {
           _pf.GLOBAL(_function_symbols.back()->name(), _pf.OBJ());
