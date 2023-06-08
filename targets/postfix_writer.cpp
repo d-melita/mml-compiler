@@ -385,7 +385,7 @@ void mml::postfix_writer::do_block_node(mml::block_node * const node, int lvl) {
 void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node, int lvl) {
   
   ASSERT_SAFE_EXPRESSIONS;
-  
+  std::cout << "[* Debug] Entered do_declaration_node" << std::endl;
   auto id = node->identifier();
   int offset = 0;
   int type_size = node->type()->size();
@@ -402,115 +402,88 @@ void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node
     offset = 0;
   }
   
-  auto symbol = new_symbol();
+  std::shared_ptr<mml::symbol> symbol = new_symbol();
   if (symbol) {
     symbol->set_offset(offset);
     reset_new_symbol();
   }
 
-  if (!(_in_function_body || _in_function_args)) {
+  if (!_in_function_args && !_in_function_body) {
+    std::cout << "[* Debug] here" << std::endl;
     _not_declared_symbols.insert(symbol->name());
   }
- 
   
-  if (_in_function_body) {
-
-    if (node->rvalue()) {
-      
-      node->rvalue()->accept(this, lvl);
-      
-      if (node->is_typed(cdk::TYPE_INT)     || 
-          node->is_typed(cdk::TYPE_STRING)  || 
-          node->is_typed(cdk::TYPE_POINTER) || 
-          node->is_typed(cdk::TYPE_FUNCTIONAL)) {
+  if (node->rvalue()) {
+    if (_in_function_body) {
+      node->accept(this, lvl);
+      if (symbol->is_typed(cdk::TYPE_INT) || symbol->is_typed(cdk::TYPE_STRING) ||
+      symbol->is_typed(cdk::TYPE_POINTER) || symbol->is_typed(cdk::TYPE_FUNCTIONAL)) {
         _pf.LOCAL(symbol->offset());
         _pf.STINT();
-      } 
-      else if (node->is_typed(cdk::TYPE_DOUBLE)) {
-        if (node->rvalue()->is_typed(cdk::TYPE_INT)){
+      } else if (symbol->is_typed(cdk::TYPE_DOUBLE)) {
+        if (node->is_typed(cdk::TYPE_INT)) {
           _pf.I2D();
         }
         _pf.LOCAL(symbol->offset());
         _pf.STDOUBLE();
-      } 
-      else {
-        std::cerr << "ERROR: the declaration cannot be initialized" << std::endl;
+      } else {
+        std::cerr << "UNKNOWN TYPE" << std::endl;
+        return;
       }
-    }
-  } 
-  else {
-    if (symbol->is_typed(cdk::TYPE_INT)    || 
-        symbol->is_typed(cdk::TYPE_DOUBLE) ||
-        symbol->is_typed(cdk::TYPE_POINTER)) {
-          
-      _pf.DATA();
-      _pf.ALIGN();
-      _pf.LABEL(symbol->name());
-      
-      if (symbol->is_typed(cdk::TYPE_INT)) {
-        node->accept(this, lvl);
-      }
-      else if (symbol->is_typed(cdk::TYPE_DOUBLE)) {
-        if (node->is_typed(cdk::TYPE_INT)) {
-          auto in = dynamic_cast<cdk::integer_node*>(node);
-          cdk::double_node ddi(in->lineno(), in->value());
-          ddi.accept(this, lvl);
-        }
-        else if (node->is_typed(cdk::TYPE_DOUBLE)) {
+    } else {
+      if (symbol->is_typed(cdk::TYPE_INT) || symbol->is_typed(cdk::TYPE_DOUBLE) ||
+      symbol->is_typed(cdk::TYPE_POINTER)) {
+        _pf.DATA();
+        _pf.ALIGN();
+        _pf.LABEL(symbol->name());
+        if (symbol->is_typed(cdk::TYPE_INT) || symbol->is_typed(cdk::TYPE_POINTER)) {
           node->accept(this, lvl);
+        } else if (symbol->is_typed(cdk::TYPE_DOUBLE)) {
+          if (node->is_typed(cdk::TYPE_DOUBLE)) {
+            node->accept(this, lvl);
+          } else if (node->is_typed(cdk::TYPE_INT)) {
+            cdk::integer_node *dclini = dynamic_cast<cdk::integer_node*>(node);
+            cdk::double_node ddi(dclini->lineno(), dclini->value());
+            ddi.accept(this, lvl);
+          } else {
+            std::cerr << "ERROR: Wrong declaration for real value" << std::endl;
+          }
         }
-        else {
-          std::cerr << "ERROR: the declaration cannot be initialized" << std::endl;
-        }
-      }
-      else if (symbol->is_typed(cdk::TYPE_POINTER)) {
+      } else if (symbol->is_typed(cdk::TYPE_STRING)) {
+        _pf.DATA();
+        _pf.ALIGN();
+        _pf.LABEL(symbol->name());
         node->accept(this, lvl);
+      } else if (symbol->is_typed(cdk::TYPE_FUNCTIONAL)) {
+        _function_symbols.push_back(symbol);
+        reset_new_symbol();
+        node->accept(this, lvl);
+        _pf.DATA();
+        if (_function_symbols.back()->qualifier() == tPUBLIC) {
+          _pf.GLOBAL(_function_symbols.back()->name(), _pf.OBJ());
+        }
+        _pf.ALIGN();
+        _pf.LABEL(symbol->name());
+        std::string lbl = _function_label;
+        _function_label.clear();
+        _pf.SADDR(lbl);
+      } else {
+        std::cerr << "ERROR: Unexpected initializer" << std::endl;
       }
     }
-    
-    else if (symbol->is_typed(cdk::TYPE_STRING)) {
-      
-      _pf.DATA();
-      _pf.ALIGN();
-      _pf.LABEL(symbol->name());
-      
-      node->accept(this, lvl);
-    }
-    
-    else if (symbol->is_typed(cdk::TYPE_FUNCTIONAL)) {
-      
-      _function_symbols.push_back(symbol);
-      reset_new_symbol();
-      node->accept(this, lvl);
-      
-      _pf.DATA();
-      if (_function_symbols.back()->qualifier() == tPUBLIC) {
-        _pf.GLOBAL(_function_symbols.back()->name(), _pf.OBJ());
-      }
-      _pf.ALIGN();
-      _pf.LABEL(symbol->name());
-      std::string label = _function_label;
-      _function_label.clear();
-      _pf.SADDR(label);
-    }
-    else {
-      std::cerr << "ERROR: cannot declare symbol" << std::endl;
-    }
+    _not_declared_symbols.erase(symbol->name());
   }
-    
-    _not_declared_symbols.erase(symbol->name());  
 }
 
 void mml::postfix_writer::do_function_call_node(mml::function_call_node *const node, int lvl) {
 }
 
-
-
 void mml::postfix_writer::do_function_def_node(mml::function_def_node *const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   std::cout << "[* Debug] Entered do_function_def_node" << std::endl;  
   if (node->is_main()) {
-
+    std::cout << "[* Debug] Function is main" << std::endl;
+    std::shared_ptr<mml::symbol> symbol;
     for (std::string name : _not_declared_symbols) {
       auto symbol = _symtab.find(name, 0);
       if (symbol->is_foreign()) {
@@ -522,7 +495,6 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
         _pf.SALLOC(symbol->type()->size());    
       }
     }
-    
     auto int_func_type = cdk::functional_type::create(cdk::primitive_type::create(4, cdk::TYPE_INT));
     auto main = create_symbol(int_func_type, "_main", 0, tPRIVATE);
     main->set_main(true);
