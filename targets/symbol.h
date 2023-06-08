@@ -12,6 +12,7 @@ namespace mml {
     std::string _name;
     long _value; // hack!
     int _qualifier;
+    int _offset;
     bool _is_foreign;
     bool _is_main;
 
@@ -50,6 +51,20 @@ namespace mml {
     }
     void set_foreign(bool val) {
       _is_foreign = val;
+    }
+    
+    int offset() {
+      return _offset;
+    }
+    void set_offset(int offset) {
+      _offset = offset;
+    }
+    
+    int qualifier() {
+      return _qualifier;
+    }
+    void set_qualifier(int qualifier) {
+      _qualifier = qualifier;
     }
     
   };

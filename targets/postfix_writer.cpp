@@ -383,6 +383,122 @@ void mml::postfix_writer::do_block_node(mml::block_node * const node, int lvl) {
 }
 
 void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node, int lvl) {
+  
+  ASSERT_SAFE_EXPRESSIONS;
+  
+  auto id = node->identifier();
+  int offset = 0;
+  int type_size = node->type()->size();
+  
+  if (_in_function_body) {
+    _offset -= type_size;
+    offset = _offset;
+  }
+  else if (_in_function_args) {
+    offset = _offset;
+    _offset += type_size;  
+  }
+  else {
+    offset = 0;
+  }
+  
+  auto symbol = new_symbol();
+  if (symbol) {
+    symbol->set_offset(offset);
+    reset_new_symbol();
+  }
+
+  if (!(_in_function_body || _in_function_args)) {
+    _not_declared_symbols.insert(symbol->name());
+  }
+ 
+  
+  if (_in_function_body) {
+
+    if (node->rvalue()) {
+      
+      node->rvalue()->accept(this, lvl);
+      
+      if (node->is_typed(cdk::TYPE_INT)     || 
+          node->is_typed(cdk::TYPE_STRING)  || 
+          node->is_typed(cdk::TYPE_POINTER) || 
+          node->is_typed(cdk::TYPE_FUNCTIONAL)) {
+        _pf.LOCAL(symbol->offset());
+        _pf.STINT();
+      } 
+      else if (node->is_typed(cdk::TYPE_DOUBLE)) {
+        if (node->rvalue()->is_typed(cdk::TYPE_INT)){
+          _pf.I2D();
+        }
+        _pf.LOCAL(symbol->offset());
+        _pf.STDOUBLE();
+      } 
+      else {
+        std::cerr << "ERROR: the declaration cannot be initialized" << std::endl;
+      }
+    }
+  } 
+  else {
+    if (symbol->is_typed(cdk::TYPE_INT)    || 
+        symbol->is_typed(cdk::TYPE_DOUBLE) ||
+        symbol->is_typed(cdk::TYPE_POINTER)) {
+          
+      _pf.DATA();
+      _pf.ALIGN();
+      _pf.LABEL(symbol->name());
+      
+      if (symbol->is_typed(cdk::TYPE_INT)) {
+        node->accept(this, lvl);
+      }
+      else if (symbol->is_typed(cdk::TYPE_DOUBLE)) {
+        if (node->is_typed(cdk::TYPE_INT)) {
+          auto in = dynamic_cast<cdk::integer_node*>(node);
+          cdk::double_node ddi(in->lineno(), in->value());
+          ddi.accept(this, lvl);
+        }
+        else if (node->is_typed(cdk::TYPE_DOUBLE)) {
+          node->accept(this, lvl);
+        }
+        else {
+          std::cerr << "ERROR: the declaration cannot be initialized" << std::endl;
+        }
+      }
+      else if (symbol->is_typed(cdk::TYPE_POINTER)) {
+        node->accept(this, lvl);
+      }
+    }
+    
+    else if (symbol->is_typed(cdk::TYPE_STRING)) {
+      
+      _pf.DATA();
+      _pf.ALIGN();
+      _pf.LABEL(symbol->name());
+      
+      node->accept(this, lvl);
+    }
+    
+    else if (symbol->is_typed(cdk::TYPE_FUNCTIONAL)) {
+      
+      _function_symbols.push_back(symbol);
+      reset_new_symbol();
+      node->accept(this, lvl);
+      
+      _pf.DATA();
+      if (_function_symbols.back()->qualifier() == tPUBLIC) {
+        _pf.GLOBAL(_function_symbols.back()->name(), _pf.OBJ());
+      }
+      _pf.ALIGN();
+      _pf.LABEL(symbol->name());
+      std::string label = _function_label;
+      _function_label.clear();
+      _pf.SADDR(label);
+    }
+    else {
+      std::cerr << "ERROR: cannot declare symbol" << std::endl;
+    }
+  }
+    
+    _not_declared_symbols.erase(symbol->name());  
 }
 
 void mml::postfix_writer::do_function_call_node(mml::function_call_node *const node, int lvl) {
