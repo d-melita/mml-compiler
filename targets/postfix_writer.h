@@ -20,10 +20,11 @@ namespace mml {
     std::set<std::string> _external_functions;
     std::string _function_label;
     std::vector<std::string> _return_labels;
+    std::string _extern_label;
     std::set<std::string> _not_declared_symbols;
     cdk::basic_postfix_emitter &_pf;
-    int _offset;
     int _lbl;
+    int _offset;
     bool _in_function_body;
     bool _in_function_args;
     bool _return_seen;
@@ -31,7 +32,7 @@ namespace mml {
   public:
     postfix_writer(std::shared_ptr<cdk::compiler> compiler, cdk::symbol_table<mml::symbol> &symtab,
                    cdk::basic_postfix_emitter &pf) :
-        basic_ast_visitor(compiler), _symtab(symtab), _pf(pf), _lbl(0) {
+        basic_ast_visitor(compiler), _symtab(symtab), _pf(pf), _lbl(0), _offset(0) {
     }
 
   public:

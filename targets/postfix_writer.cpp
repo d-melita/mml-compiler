@@ -280,14 +280,29 @@ void mml::postfix_writer::do_eq_node(cdk::eq_node * const node, int lvl) {
 
 void mml::postfix_writer::do_variable_node(cdk::variable_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  // simplified generation: all variables are global
-  _pf.ADDR(node->name());
+  const std::string &id = node->name();
+  auto symbol = _symtab.find(id);
+ 
+  if (symbol->is_foreign()) {
+    _extern_label = symbol->name();
+  } else if (symbol->offset() == 0) {
+    _pf.ADDR(symbol->name());
+  } else {
+     //std::cout << id + " é dos argumentos!" << std::endl;
+    _pf.LOCAL(symbol->offset());
+  }
 }
 
 void mml::postfix_writer::do_rvalue_node(cdk::rvalue_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
   node->lvalue()->accept(this, lvl);
-  _pf.LDINT(); // depends on type size
+  if (node->is_typed(cdk::TYPE_DOUBLE)) {
+    _pf.LDDOUBLE();
+  } else {
+    if (_extern_label.empty()) {
+      _pf.LDINT();
+    }
+  }
 }
 
 void mml::postfix_writer::do_assignment_node(cdk::assignment_node * const node, int lvl) {
@@ -416,9 +431,11 @@ void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node
   if (node->rvalue()) {
     std::cout << "[* Debug] Accepting rvalue" << std::endl;
     if (_in_function_body) {
+      std::cout << "[* Debug] _in_function_body == true" << std::endl;
       node->rvalue()->accept(this, lvl);
       if (symbol->is_typed(cdk::TYPE_INT) || symbol->is_typed(cdk::TYPE_STRING) ||
       symbol->is_typed(cdk::TYPE_POINTER) || symbol->is_typed(cdk::TYPE_FUNCTIONAL)) {
+        std::cout << "[* Debug] symbol->offset" << symbol->offset() << std::endl;
         _pf.LOCAL(symbol->offset());
         _pf.STINT();
       } else if (symbol->is_typed(cdk::TYPE_DOUBLE)) {
@@ -432,7 +449,7 @@ void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node
         return;
       }
     } else {
-      std::cout << "[* Debug] Not in function body" << std::endl;
+      std::cout << "[* Debug] _in_function_body == false" << std::endl;
       if (symbol->is_typed(cdk::TYPE_INT) || symbol->is_typed(cdk::TYPE_DOUBLE) ||
       symbol->is_typed(cdk::TYPE_POINTER)) {
         _pf.DATA();
