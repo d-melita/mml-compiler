@@ -657,7 +657,13 @@ void mml::type_checker::do_nullptr_node(mml::nullptr_node *const node, int lvl) 
 
 void mml::type_checker::do_return_node(mml::return_node *const node, int lvl) {
   auto symbol = _symtab.find("@", 1);
+  
+  std::cout << "[* Debug] {type_checker} (do_return_node) entered visitor" << std::endl;
+  std::cout << "[* Debug] {type_checker} (do_return_node) symbol: " << symbol << std::endl;
+  std::cout << "[* Debug] {type_checker} (do_return_node) _symtab.find(\"_main\", 0) : " << _symtab.find("_main", 0) << std::endl;
+  
   if (symbol == nullptr) {
+    std::cout << "[* Debug] {type_checker} (do_return_node) symbol is null => main function" << std::endl;
     symbol = _symtab.find("_main", 0);
     if (symbol == nullptr) {
       throw std::string("ERROR: return statement outside main program");
@@ -673,9 +679,14 @@ void mml::type_checker::do_return_node(mml::return_node *const node, int lvl) {
   } else {
     if (node->retval()) {
       std::shared_ptr<cdk::functional_type> return_type = cdk::functional_type::cast(symbol->type());
+      std::cout << "[* Debug] {type_checker} (do_return_node) return_type->output(0)->name() = " << return_type->output(0)->name() << std::endl;
+      std::cout << "[* Debug] {type_checker} (do_return_node) cdk::TYPE_VOID = " << cdk::TYPE_VOID << std::endl;
+      
       if (return_type->output() != nullptr && return_type->output(0)->name() == cdk::TYPE_VOID) {
-        throw std::string("ERROR: return statement specified in void function");
+        // throw std::string("ERROR: return statement specified in void function");
+        return;
       }
+      std::cout << "[* Debug] {type_checker} (do_return_node) didn't return " << std::endl;
       node->retval()->accept(this, lvl + 2);
       if (return_type->output() != nullptr && return_type->output(0)->name() == cdk::TYPE_INT) {
         if (!node->retval()->is_typed(cdk::TYPE_INT)) {

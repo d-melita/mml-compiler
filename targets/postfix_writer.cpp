@@ -48,11 +48,11 @@ void mml::postfix_writer::do_or_node(cdk::or_node * const node, int lvl) {
 //---------------------------------------------------------------------------
 
 void mml::postfix_writer::do_sequence_node(cdk::sequence_node * const node, int lvl) {
-  std::cout << "[* Debug] Entered do_sequence_node" << std::endl;
+  std::cout << "[* Debug] {postfix_writter} Entered do_sequence_node" << std::endl;
   for (size_t i = 0; i < node->size(); i++) {
     node->node(i)->accept(this, lvl);
   }
-  std::cout << "[* Debug] Leaving do_sequence_node" << std::endl;
+  std::cout << "[* Debug] {postfix_writter} Leaving do_sequence_node" << std::endl;
 }
 
 //---------------------------------------------------------------------------
@@ -396,24 +396,24 @@ void mml::postfix_writer::do_block_node(mml::block_node * const node, int lvl) {
 
     ASSERT_SAFE_EXPRESSIONS;
 
-    std::cout << "[* Debug] Entered do_block_node" << std::endl;
+    std::cout << "[* Debug] {postfix_writter} Entered do_block_node" << std::endl;
     _symtab.push();
     if (node->declarations()) {
-      std::cout << "[* Debug] Accepting declarations" << std::endl;
+      std::cout << "[* Debug] {postfix_writter} Accepting declarations" << std::endl;
       node->declarations()->accept(this, lvl + 2);
     }
     if (node->instructions()) {
-      std::cout << "[* Debug] Accepting instructions" << std::endl;
+      std::cout << "[* Debug] {postfix_writter} Accepting instructions" << std::endl;
       node->instructions()->accept(this, lvl + 2);
     }
     _symtab.pop();
-    std::cout << "[* Debug] Leaving do_block_node" << std::endl;
+    std::cout << "[* Debug] {postfix_writter} Leaving do_block_node" << std::endl;
 }
 
 void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node, int lvl) {
   
   ASSERT_SAFE_EXPRESSIONS;
-  std::cout << "[* Debug] Entered do_declaration_node" << std::endl;
+  std::cout << "[* Debug] {postfix_writter} Entered do_declaration_node" << std::endl;
   auto id = node->identifier();
   int offset = 0;
   int type_size = node->type()->size();
@@ -439,13 +439,13 @@ void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node
   }
   
   if (node->rvalue()) {
-    std::cout << "[* Debug] Accepting rvalue" << std::endl;
+    std::cout << "[* Debug] {postfix_writter} Accepting rvalue" << std::endl;
     if (_in_function_body) {
-      std::cout << "[* Debug] _in_function_body == true" << std::endl;
+      std::cout << "[* Debug] {postfix_writter} _in_function_body == true" << std::endl;
       node->rvalue()->accept(this, lvl);
       if (symbol->is_typed(cdk::TYPE_INT) || symbol->is_typed(cdk::TYPE_STRING) ||
       symbol->is_typed(cdk::TYPE_POINTER) || symbol->is_typed(cdk::TYPE_FUNCTIONAL)) {
-        std::cout << "[* Debug] symbol->offset" << symbol->offset() << std::endl;
+        std::cout << "[* Debug] {postfix_writter} symbol->offset" << symbol->offset() << std::endl;
         _pf.LOCAL(symbol->offset());
         _pf.STINT();
       } else if (symbol->is_typed(cdk::TYPE_DOUBLE)) {
@@ -459,7 +459,7 @@ void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node
         return;
       }
     } else {
-      std::cout << "[* Debug] _in_function_body == false" << std::endl;
+      std::cout << "[* Debug] {postfix_writter} _in_function_body == false" << std::endl;
       if (symbol->is_typed(cdk::TYPE_INT) || symbol->is_typed(cdk::TYPE_DOUBLE) ||
       symbol->is_typed(cdk::TYPE_POINTER)) {
         _pf.DATA();
@@ -484,7 +484,7 @@ void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node
         _pf.LABEL(symbol->name());
         node->rvalue()->accept(this, lvl);
       } else if (symbol->is_typed(cdk::TYPE_FUNCTIONAL)) {
-        std::cout << "[* Debug] type fucntional" << std::endl;  
+        std::cout << "[* Debug] {postfix_writter} type fucntional" << std::endl;  
         _function_symbols.push_back(symbol);
         reset_new_symbol();
         node->rvalue()->accept(this, lvl);
@@ -507,7 +507,7 @@ void mml::postfix_writer::do_declaration_node(mml::declaration_node * const node
 
 void mml::postfix_writer::do_function_call_node(mml::function_call_node *const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  std::cout << "[* Debug] Entered do_function_call_node" << std::endl;
+  std::cout << "[* Debug] {postfix_writter} Entered do_function_call_node" << std::endl;
   std::vector<std::shared_ptr<cdk::basic_type>> args_types;
   if (node->identifier()) {
     args_types = cdk::functional_type::cast(node->identifier()->type())->input()->components();
@@ -532,7 +532,7 @@ void mml::postfix_writer::do_function_call_node(mml::function_call_node *const n
   if (node->identifier()) {
     _extern_label.clear();
     node->identifier()->accept(this, lvl + 2);
-    if (_extern_label.empty()) {
+    if (!_extern_label.empty()) {
       _pf.CALL(_extern_label);
     } else {
      _pf.BRANCH(); 
@@ -556,9 +556,9 @@ void mml::postfix_writer::do_function_call_node(mml::function_call_node *const n
 
 void mml::postfix_writer::do_function_def_node(mml::function_def_node *const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  std::cout << "[* Debug] Entered do_function_def_node" << std::endl;  
+  std::cout << "[* Debug] {postfix_writter} Entered do_function_def_node" << std::endl;  
   if (node->is_main()) {
-    std::cout << "[* Debug] Function is main" << std::endl;
+    std::cout << "[* Debug] {postfix_writter} Function is main" << std::endl;
     std::shared_ptr<mml::symbol> symbol;
     for (std::string name : _not_declared_symbols) {
       auto symbol = _symtab.find(name, 0);
@@ -620,12 +620,15 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
     _external_functions.clear();
     _return_seen = _prev;
     
-    std::cout << "[* Debug] Finished `is_main`" << std::endl;
+    std::cout << "[* Debug] {postfix_writter} Finished `is_main`" << std::endl;
     return;
   } else {
+    std::cout << "[* Debug] {postfix_writter} Function is not main" << std::endl;
 
     auto function = mml::create_symbol(node->type(), "@", 0, tPRIVATE);
 
+    std::cout << "[* Debug] {postfix_writter} function->name() = " << function->name() << std::endl;
+    
     if (_symtab.find_local(function->name())) {
       _symtab.replace(function->name(), function);
     } else {
@@ -633,6 +636,9 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
         return;
       }
     }
+    
+    std::cout << "[* Debug] {postfix_writter} Passed insert in _symtab" << std::endl;
+    
   
     std::string func_name;
 
@@ -696,7 +702,7 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
       _pf.TEXT(_return_labels.back());
       _pf.ADDR(_function_label);
     }
-    std::cout << "[* Debug] Finished not-main definition node" << std::endl;
+    std::cout << "[* Debug] {postfix_writter} Finished not-main definition node" << std::endl;
   }
 }
 
@@ -743,7 +749,7 @@ void mml::postfix_writer::do_nullptr_node(mml::nullptr_node *const node, int lvl
 
 void mml::postfix_writer::do_return_node(mml::return_node *const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  std::cout << "[* Debug] Started do_return_node" << std::endl;
+  std::cout << "[* Debug] {postfix_writter} Started do_return_node" << std::endl;
   _return_seen = true;
   auto current_function = _function_symbols.back();
   std::shared_ptr<cdk::basic_type> outputType = cdk::functional_type::cast(current_function->type())->output(0);
@@ -761,12 +767,12 @@ void mml::postfix_writer::do_return_node(mml::return_node *const node, int lvl) 
   }
   _pf.LEAVE();
   _pf.RET();
-  std::cout << "[* Debug] Finished do_return_node" << std::endl;
+  std::cout << "[* Debug] {postfix_writter} Finished do_return_node" << std::endl;
 }
 
 void mml::postfix_writer::do_sizeof_node(mml::sizeof_node *const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  std::cout << "[* Debug] Started do_sizeof_node" << std::endl;
+  std::cout << "[* Debug] {postfix_writter} Started do_sizeof_node" << std::endl;
   if (_in_function_body) {
     _pf.INT(node->argument()->type()->size());
   } else {
@@ -795,7 +801,7 @@ void mml::postfix_writer::do_stop_node(mml::stop_node *const node, int lvl) {
 
 void mml::postfix_writer::do_write_node(mml::write_node *const node, int lvl) {
   
-  std::cout << "[* Debug] Started do_write_node" << std::endl;
+  std::cout << "[* Debug] {postfix_writter} Started do_write_node" << std::endl;
 
   ASSERT_SAFE_EXPRESSIONS;
 
@@ -826,5 +832,5 @@ void mml::postfix_writer::do_write_node(mml::write_node *const node, int lvl) {
     }
   }
   
-  std::cout << "[* Debug] Finished do_write_node" << std::endl;
+  std::cout << "[* Debug] {postfix_writter} Finished do_write_node" << std::endl;
 }
