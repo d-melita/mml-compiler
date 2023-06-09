@@ -312,8 +312,18 @@ void mml::postfix_writer::do_rvalue_node(cdk::rvalue_node * const node, int lvl)
 
 void mml::postfix_writer::do_assignment_node(cdk::assignment_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
+  
   node->rvalue()->accept(this, lvl); // determine the new value
-  _pf.DUP32();
+  
+  if (node->is_typed(cdk::TYPE_DOUBLE)) {
+    if (node->rvalue()->is_typed(cdk::TYPE_INT)) {
+      _pf.I2D();
+    }
+    _pf.DUP64();
+  } else {
+    _pf.DUP32();
+  }
+  
   if (new_symbol() == nullptr) {
     node->lvalue()->accept(this, lvl); // where to store the value
   } else {
@@ -325,7 +335,12 @@ void mml::postfix_writer::do_assignment_node(cdk::assignment_node * const node, 
     _pf.TEXT(); // return to the TEXT segment
     node->lvalue()->accept(this, lvl);  //DAVID: bah!
   }
-  _pf.STINT(); // store the value at address
+  
+  if (node->is_typed(cdk::TYPE_DOUBLE)) {
+    _pf.STDOUBLE();
+  } else {
+    _pf.STINT();
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -577,6 +592,15 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
     auto mainat = mml::create_symbol(int_func_type, "@", 0, tPRIVATE);
     mainat->set_main(true);
 
+    if (_symtab.find_local(mainat->name())) {
+      _symtab.replace(mainat->name(), mainat);
+    } else {
+      if (!_symtab.insert(mainat->name(), mainat)) {
+        return;
+      }
+    }
+
+
     _function_symbols.push_back(main);
     _return_labels.push_back("_main");
     
@@ -619,6 +643,8 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
     }
     _external_functions.clear();
     _return_seen = _prev;
+
+    
     
     std::cout << "[* Debug] {postfix_writter} Finished `is_main`" << std::endl;
     return;
