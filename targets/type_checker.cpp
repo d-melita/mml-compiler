@@ -630,7 +630,7 @@ void mml::type_checker::do_index_node(mml::index_node *const node, int lvl) {
   node->ptr()->accept(this, lvl + 2);
   std::shared_ptr<cdk::reference_type> ref = cdk::reference_type::cast(node->ptr()->type());
 
-  if (!node->ptr()->is_typed(cdk::TYPE_INT)) {
+  if (!node->ptr()->is_typed(cdk::TYPE_POINTER)) {
     throw std::string("pointer expression expected in index left value");
   }
 
