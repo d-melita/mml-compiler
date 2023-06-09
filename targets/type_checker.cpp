@@ -574,86 +574,50 @@ void mml::type_checker::do_declaration_node(mml::declaration_node * const node, 
 void mml::type_checker::do_function_call_node(mml::function_call_node *const node, int lvl) {
 
   ASSERT_UNSPEC;
-  
   std::vector<std::shared_ptr<cdk::basic_type>> in_types;
   std::shared_ptr<cdk::basic_type> out_type;
   
-  if (node->identifier()){
-    
-    node->identifier()->accept(this, lvl + 2);
-    
-    if (!(node->identifier()->type()->name() == cdk::TYPE_FUNCTIONAL)) {
-      throw std::string("ERROR: expected a pointer to call function");
+  if (!node->identifier()){ 
+    auto symbol = _symtab.find("@", 1);
+    if (symbol == nullptr) {
+      throw std::string("Error: recursive call outside of function");
     }
-    
+    if (symbol->is_main()) {
+      throw std::string("Error: recursive call in main function");
+    }
+    in_types = cdk::functional_type::cast(symbol->type())->input()->components();
+    out_type = cdk::functional_type::cast(symbol->type())->output(0);
+  } else {
+    node->identifier()->accept(this, lvl + 2);
+    if (!(node->identifier()->type()->name() == cdk::TYPE_FUNCTIONAL)) {
+      throw std::string("Error: Expected function call or function pointer");
+    }
     in_types = cdk::functional_type::cast(node->identifier()->type())->input()->components();
     out_type = cdk::functional_type::cast(node->identifier()->type())->output(0);
   }
-  // Recursive call (`@`)
-  else {
-    auto symbol = _symtab.find("@", 1);
-    
-    if (symbol == nullptr) {
-      throw std::string("ERROR: Recursive symbol used outside a function");
+  node->type(out_type);
+  if (node->arguments()){
+    if (node->arguments()->size() == in_types.size()) {
+      node->arguments()->accept(this, lvl + 4);
+      for (size_t ax = 0; ax < node->arguments()->size(); ax++) {
+        cdk::expression_node *arg = dynamic_cast<cdk::expression_node*>(node->arguments()->node(ax));
+        if (in_types[ax] == arg->type() || 
+        (in_types[ax]->name() == cdk::TYPE_DOUBLE && arg->type()->name() == cdk::TYPE_INT)) {
+          continue;
+        } else {
+          throw std::string("Error: Argument " + std::to_string(ax) + " has wrong type");
+        }
+      }
+    } else {
+      throw std::string("Error: Number of arguments in call (" +
+      std::to_string(node->arguments()->size()) + ") does not match function declaration (" +
+      std::to_string(in_types.size()) + ")");
     }
-    else if (symbol->is_main()) {
-      throw std::string("ERROR: Recursive symbol used in main function");
-    }
-    
-    in_types = cdk::functional_type::cast(symbol->type())->input()->components();
-    out_type = cdk::functional_type::cast(symbol->type())->output(0);
-  }
-  
-  node->type(out_type);   
-
-  if (node->arguments()->size() == in_types.size()) {
-    
-    node->arguments()->accept(this, lvl + 4);
-    
-    for (size_t i = 0; i < node->arguments()->size(); i++) {
-      if (node->getArgument(i)->type()->name() == in_types[i]->name()) continue;
-      if (in_types[i]->name() == cdk::TYPE_DOUBLE && node->getArgument(i)->is_typed(cdk::TYPE_INT)) continue;
-      throw std::string("ERROR: type mismatch for argument " + std::to_string(i + 1) + ".");
-    }
-  } 
-  else {
-    throw std::string(
-        "ERROR: number of arguments in call (" + std::to_string(node->arguments()->size()) + ") must match declaration ("
-            + std::to_string(in_types.size()) + ").");
   }
 }
 
 void mml::type_checker::do_function_def_node(mml::function_def_node *const node, int lvl) {
-  ASSERT_UNSPEC
-  if (node->is_main()) {
-    auto mainfunc = mml::create_symbol(cdk::functional_type::create(cdk::primitive_type::create(4, cdk::TYPE_INT)), "_main", 0, tPRIVATE);
-    mainfunc->set_main(true);
-    auto cdkInt = cdk::primitive_type::create(4, cdk::TYPE_INT);
-    std::vector<std::shared_ptr<cdk::basic_type>> input_types;
-    auto mainat = mml::create_symbol(cdk::reference_type::create(4, cdkInt), "@", 0, tPUBLIC);
-    mainat->set_main(true);
-    if (_symtab.find_local(mainat->name())) {
-      _symtab.replace(mainat->name(), mainat);
-    } else {
-      if (!_symtab.insert(mainat->name(), mainat)) {
-        std::cerr << "ERROR: error inserting main @" << std::endl;
-        return;
-      }
-    }
-    _parent->set_new_symbol(mainfunc);
-  } else {
-    auto function = mml::create_symbol(node->type(), "@", 0, tPRIVATE);
-
-    if (_symtab.find_local(function->name())) {
-      _symtab.replace(function->name(), function);
-    } else {
-      if (!_symtab.insert(function->name(), function)) {
-        std::cerr << "ERROR: error inserting function" << std::endl;
-        return;
-      }
-    }
-    _parent->set_new_symbol(function);
-  }
+  ASSERT_UNSPEC;
 }
 
 void mml::type_checker::do_identity_node(mml::identity_node *const node, int lvl) {
@@ -692,11 +656,64 @@ void mml::type_checker::do_nullptr_node(mml::nullptr_node *const node, int lvl) 
 }
 
 void mml::type_checker::do_return_node(mml::return_node *const node, int lvl) {
-  // TODO
+  auto symbol = _symtab.find("@", 1);
+  if (symbol == nullptr) {
+    symbol = _symtab.find("_main", 0);
+    if (symbol == nullptr) {
+      throw std::string("ERROR: return statement outside main program");
+    } else {
+      if (!node->retval()) {
+        throw std::string("ERROR: return statement in main program without return value (expected int)");
+      }
+      node->retval()->accept(this, lvl + 2);
+      if (!node->retval()->is_typed(cdk::TYPE_INT)) {
+        throw std::string("ERROR: return statement in main program with invalid return value (expected int)");
+      }
+    }
+  } else {
+    if (node->retval()) {
+      std::shared_ptr<cdk::functional_type> return_type = cdk::functional_type::cast(symbol->type());
+      if (return_type->output() != nullptr && return_type->output(0)->name() == cdk::TYPE_VOID) {
+        throw std::string("ERROR: return statement specified in void function");
+      }
+      node->retval()->accept(this, lvl + 2);
+      if (return_type->output() != nullptr && return_type->output(0)->name() == cdk::TYPE_INT) {
+        if (!node->retval()->is_typed(cdk::TYPE_INT)) {
+          throw std::string("ERROR: return statement in int function with invalid return value (expected int)");
+        }
+      } else if (return_type->output() != nullptr && return_type->output(0)->name() == cdk::TYPE_DOUBLE) {
+        if (!node->retval()->is_typed(cdk::TYPE_DOUBLE) && !node->retval()->is_typed(cdk::TYPE_INT)) {
+          throw std::string("ERROR: return statement in double function with invalid return value (expected double)");
+        }
+      } else if (return_type->output() != nullptr && return_type->output(0)->name() == cdk::TYPE_STRING) {
+        if (!node->retval()->is_typed(cdk::TYPE_STRING)) {
+          throw std::string("ERROR: return statement in string function with invalid return value (expected string)");
+        }
+      } else if (return_type->output() != nullptr && return_type->output(0)->name() == cdk::TYPE_POINTER) {
+        if (node->retval()->is_typed(cdk::TYPE_POINTER)) {
+          if (!(compatible_pointer_types(return_type->output(0), node->retval()->type()))) {
+            throw std::string("ERROR: return statement in pointer function with invalid return value (expected pointer)");
+          }
+        }
+      } else if (return_type->output() != nullptr && return_type->output(0)->name() == cdk::TYPE_FUNCTIONAL) {
+        node->retval()->accept(this, lvl + 2);
+        if (node->retval()->is_typed(cdk::TYPE_FUNCTIONAL)) {
+          if (!(compatible_function_types(cdk::functional_type::cast(return_type->output(0)), 
+          cdk::functional_type::cast(node->retval()->type())) || (node->retval()->is_typed(cdk::TYPE_POINTER) && 
+          cdk::reference_type::cast(node->retval()->type())->referenced() == nullptr))) {
+            throw std::string("ERROR: return statement in functional function with invalid return value (expected function)");
+          }
+        }
+      } else {
+        throw std::string("ERROR: return statement in invalid function");
+      }
+    }
+  }
 }
 
 void mml::type_checker::do_sizeof_node(mml::sizeof_node *const node, int lvl) {
   ASSERT_UNSPEC;
+  std::cout << "SIZEOF" << std::endl;
   node->argument()->accept(this, lvl + 2);
   node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
 }

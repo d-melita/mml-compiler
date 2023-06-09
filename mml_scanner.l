@@ -16,7 +16,7 @@ static std::ostringstream strlit;
 %}
 %x X_STRING X_BACKSLASH X_COMMENT X_STRING_SKIP
 %%
-  /* yydebug=1; set_debug(1); */
+   yydebug=1; set_debug(1); 
 
   /*-------------------------------------*/
   /* ----------- COMMENTS -------------- */
