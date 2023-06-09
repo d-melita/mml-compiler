@@ -4,6 +4,7 @@
 #include "targets/basic_ast_visitor.h"
 
 #include <set>
+#include <stack>
 #include "targets/symbol.h"
 #include <sstream>
 #include <cdk/emitters/basic_postfix_emitter.h>
@@ -22,6 +23,7 @@ namespace mml {
     std::vector<std::string> _return_labels;
     std::string _extern_label;
     std::set<std::string> _not_declared_symbols;
+    std::stack<int> _whileConditionLabel, _whileEndLabel;
     cdk::basic_postfix_emitter &_pf;
     int _lbl;
     int _offset;

@@ -348,13 +348,24 @@ void mml::postfix_writer::do_evaluation_node(mml::evaluation_node * const node, 
 
 void mml::postfix_writer::do_while_node(mml::while_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  int lbl1, lbl2;
-  _pf.LABEL(mklbl(lbl1 = ++_lbl));
-  node->condition()->accept(this, lvl);
-  _pf.JZ(mklbl(lbl2 = ++_lbl));
-  node->block()->accept(this, lvl + 2);
-  _pf.JMP(mklbl(lbl1));
-  _pf.LABEL(mklbl(lbl2));
+  
+  _whileConditionLabel.push(++_lbl);
+  _whileEndLabel.push(++_lbl);
+
+  _symtab.push();
+  _pf.ALIGN();
+  _pf.LABEL(mklbl(_whileConditionLabel.top()));
+  node->condition()->accept(this, lvl + 4);
+  _pf.JZ(mklbl(_whileEndLabel.top()));
+  node->block()->accept(this, lvl + 4);
+  _pf.JMP(mklbl(_whileConditionLabel.top()));
+  _pf.ALIGN();
+  _pf.LABEL(mklbl(_whileEndLabel.top()));
+  _symtab.pop();
+
+  _whileConditionLabel.pop();
+  _whileEndLabel.pop();
+
 }
 
 //---------------------------------------------------------------------------
@@ -385,6 +396,8 @@ void mml::postfix_writer::do_if_else_node(mml::if_else_node * const node, int lv
 //---------------------------------------------------------------------------
 
 void mml::postfix_writer::do_address_of_node(mml::address_of_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  node->lvalue()->accept(this, lvl);
 }
 
 void mml::postfix_writer::do_block_node(mml::block_node * const node, int lvl) {
@@ -651,12 +664,36 @@ void mml::postfix_writer::do_identity_node(mml::identity_node *const node, int l
 }
 
 void mml::postfix_writer::do_index_node(mml::index_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  node->ptr()->accept(this, lvl + 2);
+  node->idx()->accept(this, lvl + 2);
+  _pf.INT(node->type()->size());
+  _pf.MUL();
+  _pf.ADD();
 }
 
 void mml::postfix_writer::do_input_node(mml::input_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  if (node->is_typed(cdk::TYPE_INT)) {
+    _external_functions.insert("readi");
+    _pf.CALL("readi");
+    _pf.LDFVAL32();
+  } else if (node->is_typed(cdk::TYPE_DOUBLE)) {
+    _external_functions.insert("readd");
+    _pf.CALL("readd");
+    _pf.LDFVAL64();
+  } else {
+    throw std::string("cannot read this type");
+  }
 }
 
 void mml::postfix_writer::do_next_node(mml::next_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  if (_whileConditionLabel.size() != 0) {
+    _pf.JMP(mklbl(_whileConditionLabel.top()));
+  } else {
+    throw std::string("next outside of while");
+  }
 }
 
 void mml::postfix_writer::do_nullptr_node(mml::nullptr_node *const node, int lvl) {
@@ -686,12 +723,31 @@ void mml::postfix_writer::do_return_node(mml::return_node *const node, int lvl) 
 }
 
 void mml::postfix_writer::do_sizeof_node(mml::sizeof_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  if (_in_function_body) {
+    _pf.INT(node->argument()->type()->size());
+  } else {
+    _pf.SINT(node->argument()->type()->size());
+  }
 }
 
 void mml::postfix_writer::do_stack_alloc_node(mml::stack_alloc_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  auto referenced = cdk::reference_type::cast(node->type())->referenced();
+  node->argument()->accept(this, lvl + 2);
+  _pf.INT(referenced->size());
+  _pf.MUL();
+  _pf.ALLOC();
+  _pf.SP();
 }
 
 void mml::postfix_writer::do_stop_node(mml::stop_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  if (_whileConditionLabel.size() > 0) {
+    _pf.JMP(mklbl(_whileEndLabel.top()));
+  } else {
+    std::cerr << node->lineno() << " ERROR: stop statement outside of a while loop" << std::endl;
+  }
 }
 
 void mml::postfix_writer::do_write_node(mml::write_node *const node, int lvl) {
