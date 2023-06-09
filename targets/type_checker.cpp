@@ -304,12 +304,15 @@ void mml::type_checker::do_rvalue_node(cdk::rvalue_node *const node, int lvl) {
 
 static bool check_pointed_types_compatibility(std::shared_ptr<cdk::basic_type> lvalue_type, std::shared_ptr<cdk::basic_type> rvalue_type) {
   
-  while (rvalue_type != nullptr && lvalue_type->name() == cdk::TYPE_POINTER && rvalue_type->name() == cdk::TYPE_POINTER) {
-    lvalue_type = cdk::reference_type::cast(lvalue_type)->referenced();
-    rvalue_type = cdk::reference_type::cast(rvalue_type)->referenced();
+  std::shared_ptr<cdk::basic_type> l_type_it = lvalue_type;
+  std::shared_ptr<cdk::basic_type> r_type_it = rvalue_type;
+  
+  while (r_type_it != nullptr && l_type_it->name() == cdk::TYPE_POINTER && r_type_it->name() == cdk::TYPE_POINTER) {
+    l_type_it = cdk::reference_type::cast(l_type_it)->referenced();
+    r_type_it = cdk::reference_type::cast(r_type_it)->referenced();
   }
   
-  return rvalue_type == nullptr || lvalue_type->name() != rvalue_type->name();
+  return !(rvalue_type != nullptr && lvalue_type->name() != rvalue_type->name());
 }
 
 
@@ -422,6 +425,9 @@ void mml::type_checker::do_assignment_node(cdk::assignment_node *const node, int
       // Peels layers of `[[...]]` until it reaches the last layer
       auto lvalue_type = node->lvalue()->type();
       auto rvalue_type = node->rvalue()->type(); 
+      std::cout << "[* Debug] {type_checker} (do_assignment_node) lvalue_type: " << lvalue_type->name() << std::endl;
+      std::cout << "[* Debug] {type_checker} (do_assignment_node) rvalue_type: " << rvalue_type->name() << std::endl;
+      
       if (!check_pointed_types_compatibility(lvalue_type, rvalue_type)) {
         throw std::string("wrong number of pointer depth assignment / type to pointer");
       }

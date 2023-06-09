@@ -771,6 +771,13 @@ void mml::postfix_writer::do_next_node(mml::next_node *const node, int lvl) {
 }
 
 void mml::postfix_writer::do_nullptr_node(mml::nullptr_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  
+  if (_in_function_body) {
+    _pf.INT(0);
+  } else {
+    _pf.SINT(0);
+  }
 }
 
 void mml::postfix_writer::do_return_node(mml::return_node *const node, int lvl) {
