@@ -14,7 +14,8 @@ namespace mml {
 
         public:
         frame_size_calculator(std::shared_ptr<cdk::compiler> compiler, cdk::symbol_table<mml::symbol> &symtab, std::shared_ptr<mml::symbol> func) :
-            basic_ast_visitor(compiler), _symtab(symtab), _function(func), _localsize(0) {}
+            basic_ast_visitor(compiler), _symtab(symtab), _function(func), _localsize(0) {        
+        }
 
         public :
         ~frame_size_calculator();

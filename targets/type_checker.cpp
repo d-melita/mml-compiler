@@ -6,54 +6,6 @@
 
 #define ASSERT_UNSPEC { if (node->type() != nullptr && !node->is_typed(cdk::TYPE_UNSPEC)) return; }
 
-static bool compatible_pointer_types(std::shared_ptr<cdk::basic_type> left, std::shared_ptr<cdk::basic_type> right) {
-  while (left->name() == cdk::TYPE_POINTER && right->name() == cdk::TYPE_POINTER && right != nullptr) {
-    left = cdk::reference_type::cast(left)->referenced();
-    right = cdk::reference_type::cast(right)->referenced();
-  }
-  return right == nullptr || left->name() == right->name();
-}
-
-static bool compatible_function_types(std::shared_ptr<cdk::functional_type> left, std::shared_ptr<cdk::functional_type> right) {
-  if (left->output(0)->name() == cdk::TYPE_POINTER) {
-    if (!(right->output(0)->name() == cdk::TYPE_POINTER && compatible_pointer_types(left->output(0), right->output(0)))) {
-      return false;
-    }
-  } else if (left->output(0)->name() == cdk::TYPE_FUNCTIONAL) {
-    if (!(right->output(0)->name() == cdk::TYPE_FUNCTIONAL && compatible_function_types(cdk::functional_type::cast(left->output(0)), cdk::functional_type::cast(right->output(0))))) {
-      return false;
-    }
-  } else if (left->output(0)->name() == cdk::TYPE_DOUBLE) {
-    if (!((right->output(0)->name() == cdk::TYPE_INT) || (right->output(0)->name() == cdk::TYPE_DOUBLE))) {
-      return false;
-    }
-  } else if (left->output(0)->name() != right->output(0)->name()) {
-    return false;
-  }
-
-  if (left->input_length() != right->input_length()) {
-    return false;
-  }
-
-  for (size_t t = 0; t < left->input_length(); t++) {
-    if (left->input(t)->name() == cdk::TYPE_POINTER) {
-      if (!(right->input(t)->name() == cdk::TYPE_POINTER && compatible_pointer_types(left->input(t), right->input(t)))) {
-        return false;
-      }
-    } else if (left->input(t)->name() == cdk::TYPE_FUNCTIONAL) {
-      if (!(right->input(t)->name() == cdk::TYPE_FUNCTIONAL && compatible_function_types(cdk::functional_type::cast(left->input(t)), cdk::functional_type::cast(right->input(t))))) {
-        return false;
-      }
-    } else if (right->input(t)->name() == cdk::TYPE_DOUBLE) {
-      if (!((left->input(t)->name() == cdk::TYPE_INT) || (left->input(t)->name() == cdk::TYPE_DOUBLE))) {
-        return false;
-      }
-    } else if (left->input(t)->name() != right->input(t)->name()) {
-      return false;
-    }
-  }
-  return true;
-}
 
 void mml::type_checker::do_BooleanLogicalExpression(cdk::binary_operation_node *const node, int lvl) {
   ASSERT_UNSPEC;
@@ -81,7 +33,12 @@ void mml::type_checker::do_sequence_node(cdk::sequence_node *const node, int lvl
 void mml::type_checker::do_nil_node(cdk::nil_node *const node, int lvl) {
   // EMPTY
 }
+
 void mml::type_checker::do_data_node(cdk::data_node *const node, int lvl) {
+  // EMPTY
+}
+
+void mml::type_checker::do_block_node(mml::block_node * const node, int lvl) {
   // EMPTY
 }
 
@@ -311,17 +268,19 @@ static bool check_pointed_types_compatibility(std::shared_ptr<cdk::basic_type> l
 }
 
 
-bool check_function_types_compatibility(std::shared_ptr<cdk::functional_type> lvalue_type, std::shared_ptr<cdk::functional_type> rvalue_type) {
+static bool check_function_types_compatibility(std::shared_ptr<cdk::functional_type> lvalue_type, std::shared_ptr<cdk::functional_type> rvalue_type) {
 
   if (lvalue_type->output(0)->name() == cdk::TYPE_POINTER) {
     if (rvalue_type->output(0)->name() != cdk::TYPE_POINTER || 
        !check_pointed_types_compatibility(lvalue_type->output(0), rvalue_type->output(0))) {
+    std::cout << "FML 1" << std::endl;
     return false;
     }
   }
   else if (lvalue_type->output(0)->name() == cdk::TYPE_DOUBLE) {  
     if (rvalue_type->output(0)->name() != cdk::TYPE_INT && 
         rvalue_type->output(0)->name() != cdk::TYPE_DOUBLE) {
+    std::cout << "FML 2" << std::endl;
       return false;
     }
   }
@@ -329,13 +288,17 @@ bool check_function_types_compatibility(std::shared_ptr<cdk::functional_type> lv
     if (rvalue_type->output(0)->name() != cdk::TYPE_FUNCTIONAL || 
         !check_function_types_compatibility(cdk::functional_type::cast(lvalue_type->output(0)), 
                                             cdk::functional_type::cast(rvalue_type->output(0)))) {
-    return false;}
+    std::cout << "FML 3" << std::endl;
+    return false;
+    }
   }
   else if (lvalue_type->output(0)->name() != rvalue_type->output(0)->name()) {
+    std::cout << "FML 4" << std::endl;
     return false;
   }
   
-  else if (lvalue_type->input_length() != rvalue_type->input_length()) {
+  if (lvalue_type->input_length() != rvalue_type->input_length()) {
+    std::cout << "FML 5" << std::endl;
     return false;
   }
   
@@ -344,23 +307,27 @@ bool check_function_types_compatibility(std::shared_ptr<cdk::functional_type> lv
       if (rvalue_type->input(i)->name() != cdk::TYPE_POINTER || 
          !check_pointed_types_compatibility(lvalue_type->input(i), 
                                             rvalue_type->input(i))) {
+    std::cout << "FML 6" << std::endl;
         return false;
       } 
     }
     else if (lvalue_type->input(i)->name() == cdk::TYPE_FUNCTIONAL) { 
       if (rvalue_type->input(i)->name() != cdk::TYPE_FUNCTIONAL || 
-          check_function_types_compatibility(cdk::functional_type::cast(lvalue_type->input(i)),                              
+          !check_function_types_compatibility(cdk::functional_type::cast(lvalue_type->input(i)),                              
                                              cdk::functional_type::cast(rvalue_type->input(i)))) {
+    std::cout << "FML 7" << std::endl;
         return false;
       } 
     }
     else if (rvalue_type->input(i)->name() == cdk::TYPE_DOUBLE) {
       if (lvalue_type->input(i)->name() != cdk::TYPE_INT && 
           lvalue_type->input(i)->name() != cdk::TYPE_DOUBLE) {
+    std::cout << "FML 8" << std::endl;
         return false;
       } 
     }
     else if ((lvalue_type->input(i)->name() != rvalue_type->input(i)->name())) {
+    std::cout << "FML 9" << std::endl;
       return false;
     }
   }
@@ -504,10 +471,6 @@ void mml::type_checker::do_address_of_node(mml::address_of_node *const node, int
   node->type(cdk::reference_type::create(4, node->lvalue()->type()));
 }
 
-void mml::type_checker::do_block_node(mml::block_node * const node, int lvl) {
-  // EMPTY
-}
-
 void mml::type_checker::do_declaration_node(mml::declaration_node * const node, int lvl) {
   if (node->rvalue() != nullptr) {
     node->rvalue()->accept(this, lvl + 2);
@@ -526,12 +489,12 @@ void mml::type_checker::do_declaration_node(mml::declaration_node * const node, 
         }
       } else if (node->is_typed(cdk::TYPE_POINTER)) {
         if (!(node->rvalue()->is_typed(cdk::TYPE_POINTER) &&
-          compatible_pointer_types(node->type(), node->rvalue()->type()))) {
+          check_pointed_types_compatibility(node->type(), node->rvalue()->type()))) {
           throw std::string("wrong type for initializer (pointer expected)");
         } 
       } else if (node->is_typed(cdk::TYPE_FUNCTIONAL)) {
         if (!((node->rvalue()->is_typed(cdk::TYPE_FUNCTIONAL) &&
-          compatible_function_types(cdk::functional_type::cast(node->type()),
+          check_function_types_compatibility(cdk::functional_type::cast(node->type()),
           cdk::functional_type::cast(node->rvalue()->type()))) || 
           ((node->rvalue()->is_typed(cdk::TYPE_POINTER) && 
           cdk::reference_type::cast(node->rvalue()->type())->referenced() == nullptr)))) {
@@ -551,12 +514,12 @@ void mml::type_checker::do_declaration_node(mml::declaration_node * const node, 
     if (previous) {
       if (previous->type()->name() == cdk::TYPE_FUNCTIONAL &&
       symbol->type()->name() == cdk::TYPE_FUNCTIONAL && 
-      compatible_function_types(cdk::functional_type::cast(previous->type()), 
+      check_function_types_compatibility(cdk::functional_type::cast(previous->type()), 
       cdk::functional_type::cast(symbol->type()))) {
         _symtab.replace(symbol->name(), symbol);
       } else if (previous->type()->name() == cdk::TYPE_POINTER &&
       symbol->type()->name() == cdk::TYPE_POINTER &&
-      compatible_pointer_types(previous->type(), symbol->type())) {
+      check_pointed_types_compatibility(previous->type(), symbol->type())) {
         _symtab.replace(symbol->name(), symbol);
       } else if (previous->type()->name() == symbol->type()->name()) {
         _symtab.replace(symbol->name(), symbol);
@@ -695,14 +658,14 @@ void mml::type_checker::do_return_node(mml::return_node *const node, int lvl) {
         }
       } else if (return_type->output() != nullptr && return_type->output(0)->name() == cdk::TYPE_POINTER) {
         if (node->retval()->is_typed(cdk::TYPE_POINTER)) {
-          if (!(compatible_pointer_types(return_type->output(0), node->retval()->type()))) {
+          if (!(check_pointed_types_compatibility(return_type->output(0), node->retval()->type()))) {
             throw std::string("ERROR: return statement in pointer function with invalid return value (expected pointer)");
           }
         }
       } else if (return_type->output() != nullptr && return_type->output(0)->name() == cdk::TYPE_FUNCTIONAL) {
         node->retval()->accept(this, lvl + 2);
         if (node->retval()->is_typed(cdk::TYPE_FUNCTIONAL)) {
-          if (!(compatible_function_types(cdk::functional_type::cast(return_type->output(0)), 
+          if (!(check_function_types_compatibility(cdk::functional_type::cast(return_type->output(0)), 
           cdk::functional_type::cast(node->retval()->type())) || (node->retval()->is_typed(cdk::TYPE_POINTER) && 
           cdk::reference_type::cast(node->retval()->type())->referenced() == nullptr))) {
             throw std::string("ERROR: return statement in functional function with invalid return value (expected function)");
@@ -717,7 +680,6 @@ void mml::type_checker::do_return_node(mml::return_node *const node, int lvl) {
 
 void mml::type_checker::do_sizeof_node(mml::sizeof_node *const node, int lvl) {
   ASSERT_UNSPEC;
-  std::cout << "SIZEOF" << std::endl;
   node->argument()->accept(this, lvl + 2);
   node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
 }

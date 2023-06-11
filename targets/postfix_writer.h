@@ -15,9 +15,11 @@ namespace mml {
   //! Traverse syntax tree and generate the corresponding assembly code.
   //!
   class postfix_writer: public basic_ast_visitor {
+    
     cdk::symbol_table<mml::symbol> &_symtab;
     std::shared_ptr<mml::symbol> _curr_function; // Saves the function and arguments
     std::vector<std::shared_ptr<mml::symbol>> _function_symbols; // Saves the function symbols
+    
     std::set<std::string> _external_functions;
     std::string _function_label;
     std::vector<std::string> _return_labels;
@@ -25,6 +27,7 @@ namespace mml {
     std::set<std::string> _not_declared_symbols;
     std::stack<int> _whileConditionLabel, _whileEndLabel;
     cdk::basic_postfix_emitter &_pf;
+    
     int _lbl;
     int _offset;
     bool _in_function_body = false;
@@ -37,7 +40,6 @@ namespace mml {
         basic_ast_visitor(compiler), _symtab(symtab), _pf(pf), _lbl(0), _offset(0) {
     }
 
-  public:
     ~postfix_writer() {
       os().flush();
     }
@@ -53,13 +55,11 @@ namespace mml {
       return oss.str();
     }
 
-  public:
-  // do not edit these lines
-#define __IN_VISITOR_HEADER__
-#include ".auto/visitor_decls.h"       // automatically generated
-#undef __IN_VISITOR_HEADER__
-  // do not edit these lines: end
-
+    // do not edit these lines
+    #define __IN_VISITOR_HEADER__
+    #include ".auto/visitor_decls.h"  // automatically generated
+    #undef __IN_VISITOR_HEADER__
+    // do not edit these lines: end
   };
 
 } // mml
