@@ -6,11 +6,6 @@
 
 #define ASSERT_UNSPEC { if (node->type() != nullptr && !node->is_typed(cdk::TYPE_UNSPEC)) return; }
 
-#define DEBUG 1
-void debug(std::string str) {
-  if (DEBUG) std::cout << "[*] (Debug) " << str << std::endl;
-}
-
 static bool compatible_pointer_types(std::shared_ptr<cdk::basic_type> left, std::shared_ptr<cdk::basic_type> right) {
   while (left->name() == cdk::TYPE_POINTER && right->name() == cdk::TYPE_POINTER && right != nullptr) {
     left = cdk::reference_type::cast(left)->referenced();
@@ -421,11 +416,7 @@ void mml::type_checker::do_assignment_node(cdk::assignment_node *const node, int
       throw std::string("wrong assignment to string");
     }
   } 
-  
-  else if (node->lvalue()->is_typed(cdk::TYPE_VOID)){
-    // TODO should be done?
-  }
-  
+
   else if (node->lvalue()->is_typed(cdk::TYPE_POINTER)){
     
     if (node->rvalue()->is_typed(cdk::TYPE_POINTER)) {
@@ -433,15 +424,12 @@ void mml::type_checker::do_assignment_node(cdk::assignment_node *const node, int
       // Peels layers of `[[...]]` until it reaches the last layer
       auto lvalue_type = node->lvalue()->type();
       auto rvalue_type = node->rvalue()->type(); 
-      std::cout << "[* Debug] {type_checker} (do_assignment_node) lvalue_type: " << lvalue_type->name() << std::endl;
-      std::cout << "[* Debug] {type_checker} (do_assignment_node) rvalue_type: " << rvalue_type->name() << std::endl;
       
       if (!check_pointed_types_compatibility(lvalue_type, rvalue_type)) {
         throw std::string("wrong number of pointer depth assignment / type to pointer");
       }
       node->type(node->rvalue()->type()); 
     } 
-    // TODO: not sure on this one
     else if (node->rvalue()->is_typed(cdk::TYPE_UNSPEC)) {             
       node->type(cdk::primitive_type::create(4, cdk::TYPE_ERROR));
       node->rvalue()->type(cdk::primitive_type::create(4, cdk::TYPE_ERROR));
@@ -463,7 +451,6 @@ void mml::type_checker::do_assignment_node(cdk::assignment_node *const node, int
       node->type(node->rvalue()->type());
    
     } 
-    // TODO: not sure on this one
     else if (node->rvalue()->is_typed(cdk::TYPE_UNSPEC)) {              
       node->type(cdk::primitive_type::create(4, cdk::TYPE_ERROR));
       node->rvalue()->type(cdk::primitive_type::create(4, cdk::TYPE_ERROR));
@@ -672,12 +659,7 @@ void mml::type_checker::do_nullptr_node(mml::nullptr_node *const node, int lvl) 
 void mml::type_checker::do_return_node(mml::return_node *const node, int lvl) {
   auto symbol = _symtab.find("@", 1);
   
-  std::cout << "[* Debug] {type_checker} (do_return_node) entered visitor" << std::endl;
-  std::cout << "[* Debug] {type_checker} (do_return_node) symbol: " << symbol << std::endl;
-  std::cout << "[* Debug] {type_checker} (do_return_node) _symtab.find(\"_main\", 0) : " << _symtab.find("_main", 0) << std::endl;
-  
   if (symbol == nullptr) {
-    std::cout << "[* Debug] {type_checker} (do_return_node) symbol is null => main function" << std::endl;
     symbol = _symtab.find("_main", 0);
     if (symbol == nullptr) {
       throw std::string("ERROR: return statement outside main program");
@@ -693,14 +675,11 @@ void mml::type_checker::do_return_node(mml::return_node *const node, int lvl) {
   } else {
     if (node->retval()) {
       std::shared_ptr<cdk::functional_type> return_type = cdk::functional_type::cast(symbol->type());
-      std::cout << "[* Debug] {type_checker} (do_return_node) return_type->output(0)->name() = " << return_type->output(0)->name() << std::endl;
-      std::cout << "[* Debug] {type_checker} (do_return_node) cdk::TYPE_VOID = " << cdk::TYPE_VOID << std::endl;
       
       if (return_type->output() != nullptr && return_type->output(0)->name() == cdk::TYPE_VOID) {
         // throw std::string("ERROR: return statement specified in void function");
         return;
       }
-      std::cout << "[* Debug] {type_checker} (do_return_node) didn't return " << std::endl;
       node->retval()->accept(this, lvl + 2);
       if (return_type->output() != nullptr && return_type->output(0)->name() == cdk::TYPE_INT) {
         if (!node->retval()->is_typed(cdk::TYPE_INT)) {
