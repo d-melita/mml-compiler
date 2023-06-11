@@ -560,7 +560,16 @@ void mml::postfix_writer::do_function_call_node(mml::function_call_node *const n
     _pf.TRASH(args_size);
   }
 
-  if (node->is_typed(cdk::TYPE_INT) ||node->is_typed(cdk::TYPE_POINTER) || 
+  if (node->is_typed(cdk::TYPE_INT)) {
+    if (!_extern_label.empty()) {
+      _pf.LDFVAL32();
+    } else {
+      _pf.LDFVAL64();
+      _pf.D2I();
+    }
+  }
+
+  if (/*node->is_typed(cdk::TYPE_INT) ||*/ node->is_typed(cdk::TYPE_POINTER) || 
   node->is_typed(cdk::TYPE_STRING) || node->is_typed(cdk::TYPE_FUNCTIONAL)) {
     _pf.LDFVAL32();
   } else if (node->is_typed(cdk::TYPE_DOUBLE)) {
@@ -614,9 +623,11 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
 
     // trick to render all inserted symbols during this visit useless
     _symtab.push();
+    std::cout << "[* Debug] {postfix_writter} (do_function_def_node) accepting node" << std::endl;
     node->accept(&lsc, lvl);
     _symtab.pop();
   
+    std::cout << "[* Debug] {postfix_writter} (do_function_def_node) lsc.localsize() = " << lsc.localsize() << std::endl;
     _pf.ENTER(lsc.localsize());
 
     bool _prev = _return_seen;
@@ -788,12 +799,24 @@ void mml::postfix_writer::do_return_node(mml::return_node *const node, int lvl) 
   std::shared_ptr<cdk::basic_type> outputType = cdk::functional_type::cast(current_function->type())->output(0);
   if (outputType->name() != cdk::TYPE_VOID) {
     node->retval()->accept(this, lvl + 2);
-    if (outputType->name() == cdk::TYPE_INT || outputType->name() == cdk::TYPE_STRING 
+    
+    if (outputType->name() == cdk::TYPE_INT) {
+      if (!current_function->is_main()) {
+        _pf.I2D();
+        _pf.STFVAL64();
+      } else {
+        _pf.STFVAL32();
+      }
+    }
+    
+    else if (/*outputType->name() == cdk::TYPE_INT ||*/ outputType->name() == cdk::TYPE_STRING 
     || outputType->name() == cdk::TYPE_POINTER || outputType->name() == cdk::TYPE_FUNCTIONAL) {
       _pf.STFVAL32();
     } else if (outputType->name() == cdk::TYPE_DOUBLE) {
-      if (node->retval()->type()->name() == cdk::TYPE_INT) _pf.I2D();
-        _pf.STFVAL64();
+      if (node->retval()->type()->name() == cdk::TYPE_INT) {
+        _pf.I2D();
+      }
+      _pf.STFVAL64();
     } else {
       std::cerr << node->lineno() << " ERROR: Unknown return type" << std::endl;
     }

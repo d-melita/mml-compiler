@@ -49,8 +49,8 @@ static bool compatible_function_types(std::shared_ptr<cdk::functional_type> left
       if (!(right->input(t)->name() == cdk::TYPE_FUNCTIONAL && compatible_function_types(cdk::functional_type::cast(left->input(t)), cdk::functional_type::cast(right->input(t))))) {
         return false;
       }
-    } else if (left->input(t)->name() == cdk::TYPE_DOUBLE) {
-      if (!((right->input(t)->name() == cdk::TYPE_INT) || (right->input(t)->name() == cdk::TYPE_DOUBLE))) {
+    } else if (right->input(t)->name() == cdk::TYPE_DOUBLE) {
+      if (!((left->input(t)->name() == cdk::TYPE_INT) || (left->input(t)->name() == cdk::TYPE_DOUBLE))) {
         return false;
       }
     } else if (left->input(t)->name() != right->input(t)->name()) {
@@ -318,45 +318,53 @@ static bool check_pointed_types_compatibility(std::shared_ptr<cdk::basic_type> l
 
 bool check_function_types_compatibility(std::shared_ptr<cdk::functional_type> lvalue_type, std::shared_ptr<cdk::functional_type> rvalue_type) {
 
-  if (lvalue_type->output(0)->name() == cdk::TYPE_POINTER && 
-      (rvalue_type->output(0)->name() != cdk::TYPE_POINTER || 
-       !check_pointed_types_compatibility(lvalue_type->output(0), rvalue_type->output(0)))) {
+  if (lvalue_type->output(0)->name() == cdk::TYPE_POINTER) {
+    if (rvalue_type->output(0)->name() != cdk::TYPE_POINTER || 
+       !check_pointed_types_compatibility(lvalue_type->output(0), rvalue_type->output(0))) {
     return false;
+    }
   }
-  else if (lvalue_type->output(0)->name() == cdk::TYPE_DOUBLE && 
-           (rvalue_type->output(0)->name() != cdk::TYPE_INT && 
-            rvalue_type->output(0)->name() != cdk::TYPE_DOUBLE)) {
-    return false;
+  else if (lvalue_type->output(0)->name() == cdk::TYPE_DOUBLE) {  
+    if (rvalue_type->output(0)->name() != cdk::TYPE_INT && 
+        rvalue_type->output(0)->name() != cdk::TYPE_DOUBLE) {
+      return false;
+    }
   }
-  else if (lvalue_type->output(0)->name() == cdk::TYPE_FUNCTIONAL && 
-           (rvalue_type->output(0)->name() != cdk::TYPE_FUNCTIONAL || 
-            !check_function_types_compatibility(cdk::functional_type::cast(lvalue_type->output(0)), 
-                                                cdk::functional_type::cast(rvalue_type->output(0))))) {
-    return false;
+  else if (lvalue_type->output(0)->name() == cdk::TYPE_FUNCTIONAL) { 
+    if (rvalue_type->output(0)->name() != cdk::TYPE_FUNCTIONAL || 
+        !check_function_types_compatibility(cdk::functional_type::cast(lvalue_type->output(0)), 
+                                            cdk::functional_type::cast(rvalue_type->output(0)))) {
+    return false;}
   }
   else if (lvalue_type->output(0)->name() != rvalue_type->output(0)->name()) {
     return false;
   }
+  
   else if (lvalue_type->input_length() != rvalue_type->input_length()) {
     return false;
   }
   
   for (size_t i = 0; i < lvalue_type->input_length(); i++) {
-    if (rvalue_type->input(i)->name() == cdk::TYPE_POINTER && 
-        (rvalue_type->input(i)->name() != cdk::TYPE_POINTER || 
-         !check_pointed_types_compatibility(lvalue_type->input(i), rvalue_type->input(i)))) {
+    if (rvalue_type->input(i)->name() == cdk::TYPE_POINTER) { 
+      if (rvalue_type->input(i)->name() != cdk::TYPE_POINTER || 
+         !check_pointed_types_compatibility(lvalue_type->input(i), 
+                                            rvalue_type->input(i))) {
         return false;
-    } 
-    else if (lvalue_type->input(i)->name() == cdk::TYPE_FUNCTIONAL && 
-             (rvalue_type->input(i)->name() != cdk::TYPE_FUNCTIONAL || 
-              check_function_types_compatibility(cdk::functional_type::cast(lvalue_type->input(i)), cdk::functional_type::cast(rvalue_type->input(i))))) {
+      } 
+    }
+    else if (lvalue_type->input(i)->name() == cdk::TYPE_FUNCTIONAL) { 
+      if (rvalue_type->input(i)->name() != cdk::TYPE_FUNCTIONAL || 
+          check_function_types_compatibility(cdk::functional_type::cast(lvalue_type->input(i)),                              
+                                             cdk::functional_type::cast(rvalue_type->input(i)))) {
         return false;
-    } 
-    else if (rvalue_type->input(i)->name() == cdk::TYPE_DOUBLE &&
-             (lvalue_type->input(i)->name() != cdk::TYPE_INT && 
-              lvalue_type->input(i)->name() != cdk::TYPE_DOUBLE)) {
+      } 
+    }
+    else if (rvalue_type->input(i)->name() == cdk::TYPE_DOUBLE) {
+      if (lvalue_type->input(i)->name() != cdk::TYPE_INT && 
+          lvalue_type->input(i)->name() != cdk::TYPE_DOUBLE) {
         return false;
-    } 
+      } 
+    }
     else if ((lvalue_type->input(i)->name() != rvalue_type->input(i)->name())) {
       return false;
     }
