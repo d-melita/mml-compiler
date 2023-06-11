@@ -701,11 +701,11 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
       _in_function_args = false;
     }
 
-    _function_label = mklbl(++_lbl);
-    _return_labels.push_back(_function_label);
+    func_name = mklbl(++_lbl);
+    _return_labels.push_back(func_name);
     _pf.TEXT(_return_labels.back());
     _pf.ALIGN();
-    _pf.LABEL(_function_label);
+    _pf.LABEL(func_name);
 
     frame_size_calculator lsc(_compiler, _symtab, function);
 
@@ -737,8 +737,10 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
 
     if (_in_function_body) {
       _pf.TEXT(_return_labels.back());
-      _pf.ADDR(_function_label);
+      _pf.ADDR(func_name);
     }
+    
+    _function_label = func_name;
     std::cout << "[* Debug] {postfix_writter} Finished not-main definition node" << std::endl;
   }
 }
