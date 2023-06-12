@@ -512,23 +512,10 @@ void mml::type_checker::do_declaration_node(mml::declaration_node * const node, 
   std::shared_ptr<mml::symbol> previous = _symtab.find_local(symbol->name());
 
   if (previous) {
-    if (previous->qualifier() == tFORWARD) {
-      if (previous->type()->name() == cdk::TYPE_FUNCTIONAL &&
-      symbol->type()->name() == cdk::TYPE_FUNCTIONAL && 
-      check_function_types_compatibility(cdk::functional_type::cast(previous->type()), 
-      cdk::functional_type::cast(symbol->type()))) {
-        _symtab.replace(symbol->name(), symbol);
-      } else if (previous->type()->name() == cdk::TYPE_POINTER &&
-      symbol->type()->name() == cdk::TYPE_POINTER &&
-      check_pointed_types_compatibility(previous->type(), symbol->type())) {
-        _symtab.replace(symbol->name(), symbol);
-      } else if (previous->type()->name() == symbol->type()->name()) {
-        _symtab.replace(symbol->name(), symbol);
-      } else {
-        throw std::string("symbol redefinition: " + symbol->name());
-      }
+    if (previous->type()->name() != node->type()->name()) {
+      throw std::string("Error: cannot redeclare variable'" + node->identifier() + "' with different type");
     } else {
-      throw std::string("ERROR: Only forward declarations can be redefined");
+      _symtab.replace(symbol->name(), symbol);
     }
   } else {
     _symtab.insert(node->identifier(), symbol);
