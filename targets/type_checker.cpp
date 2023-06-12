@@ -508,10 +508,11 @@ void mml::type_checker::do_declaration_node(mml::declaration_node * const node, 
     }
   }
 
-    auto symbol = mml::create_symbol(node->type(), node->identifier(), (long)node->rvalue(), node->qualifier());
-    std::shared_ptr<mml::symbol> previous = _symtab.find_local(symbol->name());
+  auto symbol = mml::create_symbol(node->type(), node->identifier(), (long)node->rvalue(), node->qualifier());
+  std::shared_ptr<mml::symbol> previous = _symtab.find_local(symbol->name());
 
-    if (previous) {
+  if (previous) {
+    if (previous->qualifier() == tFORWARD) {
       if (previous->type()->name() == cdk::TYPE_FUNCTIONAL &&
       symbol->type()->name() == cdk::TYPE_FUNCTIONAL && 
       check_function_types_compatibility(cdk::functional_type::cast(previous->type()), 
@@ -527,12 +528,15 @@ void mml::type_checker::do_declaration_node(mml::declaration_node * const node, 
         throw std::string("symbol redefinition: " + symbol->name());
       }
     } else {
-      _symtab.insert(node->identifier(), symbol);
+      throw std::string("ERROR: Only forward declarations can be redefined");
     }
-    _parent->set_new_symbol(symbol);
-    if (node->qualifier() == tFOREIGN) {
-      symbol->set_foreign(true);
-    }
+  } else {
+    _symtab.insert(node->identifier(), symbol);
+  }
+  _parent->set_new_symbol(symbol);
+  if (node->qualifier() == tFOREIGN) {
+    symbol->set_foreign(true);
+  }
 }
 
 void mml::type_checker::do_function_call_node(mml::function_call_node *const node, int lvl) {
