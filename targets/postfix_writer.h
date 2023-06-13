@@ -25,11 +25,12 @@ namespace mml {
     std::vector<std::string> _return_labels;
     std::string _extern_label;
     std::set<std::string> _not_declared_symbols;
-    std::stack<int> _whileConditionLabel, _whileEndLabel;
+    std::vector<int> _whileConditionLabel, _whileEndLabel;
     cdk::basic_postfix_emitter &_pf;
     
     int _lbl;
     int _offset;
+    int _while_counter = 0;
     bool _in_function_body = false;
     bool _in_function_args = false;
     bool _return_seen;

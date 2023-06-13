@@ -353,23 +353,25 @@ void mml::postfix_writer::do_evaluation_node(mml::evaluation_node * const node, 
 
 void mml::postfix_writer::do_while_node(mml::while_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  
-  _whileConditionLabel.push(++_lbl);
-  _whileEndLabel.push(++_lbl);
+  _while_counter++;
+  int while_cond = ++_lbl;
+  int while_end = ++_lbl;
+  _whileConditionLabel.push_back(while_cond);
+  _whileEndLabel.push_back(while_end);
 
   _symtab.push();
   _pf.ALIGN();
-  _pf.LABEL(mklbl(_whileConditionLabel.top()));
+  _pf.LABEL(mklbl(while_cond));
   node->condition()->accept(this, lvl + 4);
-  _pf.JZ(mklbl(_whileEndLabel.top()));
+  _pf.JZ(mklbl(while_end));
   node->block()->accept(this, lvl + 4);
-  _pf.JMP(mklbl(_whileConditionLabel.top()));
+  _pf.JMP(mklbl(while_cond));
   _pf.ALIGN();
-  _pf.LABEL(mklbl(_whileEndLabel.top()));
+  _pf.LABEL(mklbl(while_end));
   _symtab.pop();
 
-  _whileConditionLabel.pop();
-  _whileEndLabel.pop();
+  _whileConditionLabel.pop_back();
+  _whileEndLabel.pop_back();
 
 }
 
@@ -703,10 +705,8 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
 
     _symtab.pop();
 
-    if (!_return_seen) {
-      _pf.LEAVE();
-      _pf.RET();
-    }
+    _pf.LEAVE();
+    _pf.RET();
 
     _return_labels.pop_back();
     if (function) _function_symbols.pop_back();
@@ -751,8 +751,14 @@ void mml::postfix_writer::do_input_node(mml::input_node *const node, int lvl) {
 
 void mml::postfix_writer::do_next_node(mml::next_node *const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
+  if (node->level() > _while_counter) {
+    std::cerr << "ERROR: next level higher than while level" << std::endl;
+  }
+  if (node->level() < 1) {
+    std::cerr << "ERROR: next level lower than 1" << std::endl;
+  }
   if (_whileConditionLabel.size() != 0) {
-    _pf.JMP(mklbl(_whileConditionLabel.top()));
+    _pf.JMP(mklbl(_whileConditionLabel[_whileConditionLabel.size() - node->level()]));
   } else {
     throw std::string("next outside of while");
   }
@@ -822,8 +828,14 @@ void mml::postfix_writer::do_stack_alloc_node(mml::stack_alloc_node *const node,
 
 void mml::postfix_writer::do_stop_node(mml::stop_node *const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
+  if (node->level() > _while_counter) {
+    std::cerr << "ERROR: next level higher than while level" << std::endl;
+  }
+  if (node->level() < 1) {
+    std::cerr << "ERROR: next level lower than 1" << std::endl;
+  }
   if (_whileConditionLabel.size() > 0) {
-    _pf.JMP(mklbl(_whileEndLabel.top()));
+    _pf.JMP(mklbl(_whileEndLabel[_whileEndLabel.size() - node->level()]));
   } else {
     std::cerr << node->lineno() << " ERROR: stop statement outside of a while loop" << std::endl;
   }
