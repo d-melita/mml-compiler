@@ -275,7 +275,7 @@ static bool check_pointed_types_compatibility(std::shared_ptr<cdk::basic_type> l
   std::shared_ptr<cdk::basic_type> r_type_it = rvalue_type;
   
   // Iterates in a Linked-list fashion
-  while (l_type_it->name() == cdk::TYPE_POINTER && r_type_it->name() == cdk::TYPE_POINTER && r_type_it != nullptr) {
+  while (r_type_it != nullptr && l_type_it->name() == cdk::TYPE_POINTER && r_type_it->name() == cdk::TYPE_POINTER) {
     l_type_it = cdk::reference_type::cast(l_type_it)->referenced();
     r_type_it = cdk::reference_type::cast(r_type_it)->referenced();
   }
@@ -693,7 +693,7 @@ void mml::type_checker::do_return_node(mml::return_node *const node, int lvl) {
       }
     }
   } 
-  else {
+  else if (node->retval()) {
     auto return_type = cdk::functional_type::cast(function->type());
     auto return_type_output = return_type->output();
     auto return_type_name = return_type->output(0)->name();
