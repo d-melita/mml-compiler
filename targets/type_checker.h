@@ -1,6 +1,8 @@
 #ifndef __MML_TARGETS_TYPE_CHECKER_H__
 #define __MML_TARGETS_TYPE_CHECKER_H__
 
+#define ERR_NOT_INT_TYPE "Error: the condition must be of type int"
+
 #include "targets/basic_ast_visitor.h"
 
 namespace mml {
