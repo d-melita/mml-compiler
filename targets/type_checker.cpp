@@ -96,24 +96,6 @@ void mml::type_checker::do_neg_node(cdk::neg_node *const node, int lvl) {
 
 //---------------------------------------------------------------------------
 
-void mml::type_checker::processBinaryExpression(cdk::binary_operation_node *const node, int lvl) {
-  ASSERT_UNSPEC;
-  
-  node->left()->accept(this, lvl + 2);
-  if (!node->left()->is_typed(cdk::TYPE_INT)) {
-    throw std::string("Error: wrong type in left argument of binary expression");
-  }
-
-  node->right()->accept(this, lvl + 2);
-  if (!node->right()->is_typed(cdk::TYPE_INT)) {
-    throw std::string("Error: wrong type in right argument of binary expression");
-  }
-
-  // in MML, expressions are always int
-  node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
-}
-
-
 void mml::type_checker::do_PIDExpression(cdk::binary_operation_node *const node, int lvl) {
 
   if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
@@ -206,7 +188,7 @@ void mml::type_checker::do_GeneralLogicalExpression(cdk::binary_operation_node *
 void mml::type_checker::do_add_node(cdk::add_node *const node, int lvl) {
   ASSERT_UNSPEC;
   node->left()->accept(this, lvl + 2);
-  node->right()->accept(this, lvl + 2);
+  node->right()->accept(this, lvl + 2); 
   do_PIDExpression(node, lvl);
 }
 void mml::type_checker::do_sub_node(cdk::sub_node *const node, int lvl) {
@@ -664,6 +646,7 @@ void mml::type_checker::do_index_node(mml::index_node *const node, int lvl) {
 
 
 void mml::type_checker::do_input_node(mml::input_node *const node, int lvl) {
+  ASSERT_UNSPEC;
   node->type(cdk::primitive_type::create(0, cdk::TYPE_UNSPEC));
 }
 

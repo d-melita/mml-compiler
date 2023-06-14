@@ -143,7 +143,6 @@ stmts : stmt        { $$ = new cdk::sequence_node(LINE, $1); }
 stmt : expr ';'                          { $$ = new mml::evaluation_node(LINE, $1); }
 	| exprs tPRINT                      { $$ = new mml::write_node(LINE, $1, false); }
      | exprs tPRINTLN                    { $$ = new mml::write_node(LINE, $1, true); }
-     | tINPUT                            { $$ = new mml::input_node(LINE); }
      | tWHILE '(' expr ')' stmt          { $$ = new mml::while_node(LINE, $3, $5); }
      | tIF '(' expr ')' stmt %prec tIF   { $$ = new mml::if_node(LINE, $3, $5); }
      | tIF '(' expr ')' stmt elif        { $$ = new mml::if_else_node(LINE, $3, $5, $6); }
@@ -166,6 +165,7 @@ exprs : expr              { $$ = new cdk::sequence_node(LINE, $1); }
       ;
 
 expr : literal                       { $$ = $1; }
+     | tINPUT                        { $$ = new mml::input_node(LINE); }
      | '+' expr %prec tUNARY         { $$ = new mml::identity_node(LINE, $2); }
      | '-' expr %prec tUNARY         { $$ = new cdk::neg_node(LINE, $2); }
      | expr '+' expr                 { $$ = new cdk::add_node(LINE, $1, $3); }
