@@ -72,7 +72,7 @@
   /*-------------------------------------*/
 
 %type <block> block program_block
-%type <expression> expr expr_assig func_def opt_expr_assig
+%type <expression> expr expr_assig func_def opt_expr_assig literal global_opt_expr_assig global_expr_assig
 %type <lvalue> lval
 %type <node> declaration elif global_decl program stmt var
 %type <s> string
@@ -100,13 +100,22 @@ global_decls   : global_decl ';'                { $$ = new cdk::sequence_node(LI
                | global_decls global_decl ';'   { $$ = new cdk::sequence_node(LINE, $2, $1); }
                ;
 
-global_decl    : tFORWARD var_type  tIDENTIFIER                 { $$ = new mml::declaration_node(LINE, tFORWARD, *$3, nullptr, $2); delete $3; }
-               | tFOREIGN func_type tIDENTIFIER                 { $$ = new mml::declaration_node(LINE, tFOREIGN, *$3, nullptr, $2); delete $3; }
-               | tPUBLIC var_type   tIDENTIFIER opt_expr_assig  { $$ = new mml::declaration_node(LINE, tPUBLIC, *$3, $4, $2); delete $3; }
-               | tPUBLIC opt_auto   tIDENTIFIER opt_expr_assig  { $$ = new mml::declaration_node(LINE, tPUBLIC, *$3, $4, $2); delete $3; }
-               | declaration                                    { $$ = $1; }
+global_decl    : tFORWARD var_type  tIDENTIFIER                            { $$ = new mml::declaration_node(LINE, tFORWARD, *$3, nullptr, $2); delete $3; }
+               | tFOREIGN func_type tIDENTIFIER                            { $$ = new mml::declaration_node(LINE, tFOREIGN, *$3, nullptr, $2); delete $3; }
+               | tPUBLIC var_type   tIDENTIFIER global_opt_expr_assig      { $$ = new mml::declaration_node(LINE, tPUBLIC, *$3, $4, $2); delete $3; }
+               | tPUBLIC opt_auto   tIDENTIFIER global_opt_expr_assig      { $$ = new mml::declaration_node(LINE, tPUBLIC, *$3, $4, $2); delete $3; }
+               | var_type   tIDENTIFIER global_opt_expr_assig              { $$ = new mml::declaration_node(LINE, tPUBLIC, *$2, $3, $1); delete $2; }
+               | opt_auto   tIDENTIFIER global_opt_expr_assig              { $$ = new mml::declaration_node(LINE, tPUBLIC, *$2, $3, $1); delete $2; }
                ;
 			
+global_opt_expr_assig : /* empty */               { $$ = nullptr; }
+                      | global_expr_assig         { $$ = $1; }
+                      ;
+
+global_expr_assig : '=' literal   { $$ = $2; }
+                  | '=' func_def  { $$ = $2; }
+                  ;
+
 program   : tBEGIN program_block tEND { $$ = new mml::function_def_node(LINE, $2); }
           ;
 
@@ -156,10 +165,7 @@ exprs : expr              { $$ = new cdk::sequence_node(LINE, $1); }
       | exprs ',' expr    { $$ = new cdk::sequence_node(LINE, $3, $1); }
       ;
 
-expr : tINTEGER                      { $$ = new cdk::integer_node(LINE, $1); }
-     | tDOUBLE                       { $$ = new cdk::double_node(LINE, $1); }
-     | string                        { $$ = new cdk::string_node(LINE, $1); }
-     | tNULLPTR                      { $$ = new mml::nullptr_node(LINE); }
+expr : literal                       { $$ = $1; }
      | '+' expr %prec tUNARY         { $$ = new mml::identity_node(LINE, $2); }
      | '-' expr %prec tUNARY         { $$ = new cdk::neg_node(LINE, $2); }
      | expr '+' expr                 { $$ = new cdk::add_node(LINE, $1, $3); }
@@ -252,4 +258,10 @@ var : var_type tIDENTIFIER    { $$ = new mml::declaration_node(LINE, tPRIVATE, *
 lval : tIDENTIFIER             { $$ = new cdk::variable_node(LINE, $1); delete $1; }
      | expr '[' expr ']'       { $$ = new mml::index_node(LINE, $1, $3); }
      ;
+
+literal   : tINTEGER       { $$ = new cdk::integer_node(LINE, $1); }
+          | tDOUBLE        { $$ = new cdk::double_node(LINE, $1); }
+          | string         { $$ = new cdk::string_node(LINE, $1); }
+          | tNULLPTR       { $$ = new mml::nullptr_node(LINE); }
+          ;
 %%

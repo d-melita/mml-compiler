@@ -115,9 +115,6 @@ void mml::type_checker::processBinaryExpression(cdk::binary_operation_node *cons
 
 
 void mml::type_checker::do_PIDExpression(cdk::binary_operation_node *const node, int lvl) {
-  ASSERT_UNSPEC;
-  node->left()->accept(this, lvl + 2);
-  node->right()->accept(this, lvl + 2);
 
   if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
     node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
@@ -207,10 +204,20 @@ void mml::type_checker::do_GeneralLogicalExpression(cdk::binary_operation_node *
 }
 
 void mml::type_checker::do_add_node(cdk::add_node *const node, int lvl) {
+  ASSERT_UNSPEC;
+  node->left()->accept(this, lvl + 2);
+  node->right()->accept(this, lvl + 2);
   do_PIDExpression(node, lvl);
 }
 void mml::type_checker::do_sub_node(cdk::sub_node *const node, int lvl) {
-  do_PIDExpression(node, lvl);
+  ASSERT_UNSPEC;
+  node->left()->accept(this, lvl + 2);
+  node->right()->accept(this, lvl + 2);
+  if (node->left()->is_typed(cdk::TYPE_POINTER) && node->right()->is_typed(cdk::TYPE_POINTER)) {
+    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  } else {
+    do_PIDExpression(node, lvl);
+  }
 }
 void mml::type_checker::do_mul_node(cdk::mul_node *const node, int lvl) {
   do_IDExpression(node, lvl);
