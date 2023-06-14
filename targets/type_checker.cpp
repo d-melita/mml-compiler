@@ -97,25 +97,36 @@ void mml::type_checker::do_neg_node(cdk::neg_node *const node, int lvl) {
 //---------------------------------------------------------------------------
 
 void mml::type_checker::do_PIDExpression(cdk::binary_operation_node *const node, int lvl) {
-
-  if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
-    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
-  } else if (node->left()->is_typed(cdk::TYPE_DOUBLE) && node->right()->is_typed(cdk::TYPE_INT)) {
-    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
-  } else if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_DOUBLE)) {
-    node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
-  } else if (node->left()->is_typed(cdk::TYPE_POINTER) && node->right()->is_typed(cdk::TYPE_INT)) {
-    node->type(node->left()->type());
-  } else if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_POINTER)) {
-    node->type(node->right()->type());
-  } else if (node->left()->is_typed(cdk::TYPE_INT) && node->right()->is_typed(cdk::TYPE_INT)) {
-    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
-  } else if (node->left()->is_typed(cdk::TYPE_UNSPEC) && node->right()->is_typed(cdk::TYPE_UNSPEC)) {
-    node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
-    node->left()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
-    node->right()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+  if (node->left()->is_typed(cdk::TYPE_INT) || node->left()->is_typed(cdk::TYPE_UNSPEC)) {
+    if (node->left()->is_typed(cdk::TYPE_UNSPEC)) {
+      node->left()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    }
+    if (node->right()->is_typed(cdk::TYPE_DOUBLE)) {
+      node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+    } else if (node->right()->is_typed(cdk::TYPE_POINTER)) {
+      node->type(node->right()->type());
+    } else if (node->right()->is_typed(cdk::TYPE_INT)) {
+      node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    } else if (node->right()->is_typed(cdk::TYPE_UNSPEC)) {
+      node->right()->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+      node->type(cdk::primitive_type::create(4, cdk::TYPE_INT));
+    } else {
+      throw std::string("wrong type in right argument of binary expression");
+    }
+  } else if (node->left()->is_typed(cdk::TYPE_DOUBLE)) {
+    if (node->right()->is_typed(cdk::TYPE_DOUBLE) || node->right()->is_typed(cdk::TYPE_INT)) {
+      node->type(cdk::primitive_type::create(8, cdk::TYPE_DOUBLE));
+    } else {
+      throw std::string("wrong type in right argument of binary expression");
+    }
+  } else if (node->left()->is_typed(cdk::TYPE_POINTER)) {
+    if (node->right()->is_typed(cdk::TYPE_INT)) {
+      node->type(node->left()->type());
+    } else {
+      throw std::string("wrong type in right argument of binary expression");
+    }
   } else {
-    throw std::string("wrong types in arguments of binary expression");
+    throw std::string("wrong type in left argument of binary expression");
   }
 }
 
@@ -481,7 +492,8 @@ void mml::type_checker::do_declaration_node(mml::declaration_node * const node, 
     
     if (node->type()) {
       if (node->is_typed(cdk::TYPE_INT)) {
-        if (!node->rvalue()->is_typed(cdk::TYPE_INT)) {
+        std::cout << node->rvalue()->type()->name() << std::endl;
+        if (!node->rvalue()->is_typed(cdk::TYPE_INT) && !node->rvalue()->is_typed(cdk::TYPE_UNSPEC)) {
           throw std::string("Error: wrong type for initializer (integer expected)");
         }
       } 
