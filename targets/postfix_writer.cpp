@@ -50,9 +50,16 @@ void mml::postfix_writer::do_or_node(cdk::or_node * const node, int lvl) {
 //---------------------------------------------------------------------------
 
 void mml::postfix_writer::do_sequence_node(cdk::sequence_node * const node, int lvl) {
+  _last_instruction = false; 
   for (size_t i = 0; i < node->size(); i++) {
+    if (_last_instruction == true) {
+      std::cerr << node->lineno() << ": unreachable code" << std::endl;
+      _last_instruction = false;
+      return;
+    }
     node->node(i)->accept(this, lvl);
   }
+  _last_instruction = false;
 }
 
 //---------------------------------------------------------------------------
@@ -433,7 +440,7 @@ void mml::postfix_writer::do_while_node(mml::while_node * const node, int lvl) {
 
   _whileConditionLabel.pop_back();
   _whileEndLabel.pop_back();
-
+  _last_instruction = false;
 }
 
 //---------------------------------------------------------------------------
@@ -445,6 +452,7 @@ void mml::postfix_writer::do_if_node(mml::if_node * const node, int lvl) {
   _pf.JZ(mklbl(lbl1 = ++_lbl));
   node->block()->accept(this, lvl + 2);
   _pf.LABEL(mklbl(lbl1));
+  _last_instruction = false;
 }
 
 //---------------------------------------------------------------------------
@@ -459,6 +467,7 @@ void mml::postfix_writer::do_if_else_node(mml::if_else_node * const node, int lv
   _pf.LABEL(mklbl(lbl1));
   node->elseblock()->accept(this, lvl + 2);
   _pf.LABEL(mklbl(lbl1 = lbl2));
+  _last_instruction = false;
 }
 
 //---------------------------------------------------------------------------
@@ -857,6 +866,7 @@ void mml::postfix_writer::do_next_node(mml::next_node *const node, int lvl) {
   } else {
     throw std::string("next outside of while");
   }
+  _last_instruction = true;
 }
 
 void mml::postfix_writer::do_nullptr_node(mml::nullptr_node *const node, int lvl) {
@@ -881,6 +891,7 @@ void mml::postfix_writer::do_return_node(mml::return_node *const node, int lvl) 
   if (output_type_name == cdk::TYPE_VOID) {
     _pf.LEAVE();
     _pf.RET();
+    _last_instruction = true;
     return;
   }
   
@@ -911,6 +922,7 @@ void mml::postfix_writer::do_return_node(mml::return_node *const node, int lvl) 
   
   _pf.LEAVE();
   _pf.RET();
+  _last_instruction = true;
 }
 
 
@@ -950,6 +962,7 @@ void mml::postfix_writer::do_stop_node(mml::stop_node *const node, int lvl) {
   else {
     throw std::string("ERROR: stop outside of while");
   }
+  _last_instruction = true;
 }
 
 

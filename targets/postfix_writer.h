@@ -34,6 +34,7 @@ namespace mml {
     bool _in_function_body = false;
     bool _in_function_args = false;
     bool _return_seen;
+    bool _last_instruction = false;
 
   public:
     postfix_writer(std::shared_ptr<cdk::compiler> compiler, cdk::symbol_table<mml::symbol> &symtab,
