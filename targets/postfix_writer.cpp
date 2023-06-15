@@ -759,6 +759,7 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
     reset_new_symbol();
 
     // prepare for arguments (old_fp & old_ret, 4 bytes each)
+    auto prev = _offset;
     _offset = 8;    
     _symtab.push(); 
 
@@ -787,6 +788,7 @@ void mml::postfix_writer::do_function_def_node(mml::function_def_node *const nod
     _symtab.push();
     node->accept(&frame_size_calc, lvl);
     _symtab.pop();
+    _offset = prev;
 
     _pf.ENTER(frame_size_calc.localsize());
 
