@@ -47,6 +47,8 @@ namespace mml {
     }
 
   private:
+    void do_processBinary(cdk::binary_operation_node * const node, int lvl);
+    void compareDouble(cdk::binary_operation_node *const node);
     /** Method used to generate sequential labels. */
     inline std::string mklbl(int lbl) {
       std::ostringstream oss;
