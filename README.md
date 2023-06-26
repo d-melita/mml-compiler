@@ -1,6 +1,6 @@
 # MML compiler
 
-At the beginning of development, the repository contains source code for the Simple language in which all references to MML have been replaced by MML.
+Project developed in collaboration with [Pedro Chaparro](https://github.com/PedroChaps) for our Compilers class at Técnico Lisboa, 2022/2023.
 
 The steps to develop a full MML compiler imply the adaptation of:
 * the scanner (`mml_scanner.l`)
@@ -9,5 +9,3 @@ The steps to develop a full MML compiler imply the adaptation of:
 * the type checker (`targets/type_checker.cpp`)
 * the XML writer (for the middle delivery: `targets/xml_writer.cpp`)
 * the Postfix writer (for the final delivery: `targets/postfix_writer.cpp`)
-
-Note that not all the code has to be working for all deliveries. Check the evaluation conditions on the course pages.
